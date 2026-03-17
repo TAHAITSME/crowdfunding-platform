@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { fetchProfile, updateProfile } from '../features/profile/profileSlice'
 import MainLayout from '../components/layouts/MainLayout'
 import { Camera, Edit2, Check, X } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export default function Profile() {
   const dispatch = useDispatch()
@@ -15,7 +16,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (user?.id) dispatch(fetchProfile(user.id))
-  }, [user])
+  }, [user, dispatch])
 
   useEffect(() => {
     if (data) setBio(data.bio || '')
@@ -71,7 +72,12 @@ export default function Profile() {
             {editing && (
               <label className="absolute bottom-1 right-1 bg-white rounded-lg p-1 shadow cursor-pointer hover:bg-gray-50">
                 <Camera className="w-3.5 h-3.5 text-gray-600" />
-                <input type="file" accept="image/*" className="hidden" onChange={handleAvatarChange} />
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
               </label>
             )}
           </div>
@@ -81,30 +87,54 @@ export default function Profile() {
             <div className="flex-1">
               <h2 className="text-xl font-black text-gray-900">{data.username}</h2>
               <p className="text-sm text-gray-400 mb-2">{data.email}</p>
-              <span className={`text-xs px-2.5 py-1 rounded-full font-semibold
-                ${data.role === 'admin' ? 'bg-red-100 text-red-600' :
-                  data.role === 'association' ? 'bg-blue-100 text-blue-600' :
-                  'bg-green-100 text-green-600'}`}>
-                {data.role === 'admin' ? '🛡️ Admin' :
-                 data.role === 'association' ? '🏛️ Association' : '🎓 Étudiant'}
+              <span
+                className={`text-xs px-2.5 py-1 rounded-full font-semibold
+                  ${data.role === 'admin'
+                    ? 'bg-red-100 text-red-600'
+                    : data.role === 'association'
+                    ? 'bg-blue-100 text-blue-600'
+                    : 'bg-green-100 text-green-600'}`}
+              >
+                {data.role === 'admin'
+                  ? '🛡️ Admin'
+                  : data.role === 'association'
+                  ? '🏛️ Association'
+                  : '🎓 Étudiant'}
               </span>
+
+              {/* Lien Mes dons */}
+              <div className="mt-3">
+                <Link
+                  to="/my-donations"
+                  className="inline-flex items-center px-4 py-2 rounded-full bg-green-500 text-white text-xs font-semibold hover:bg-green-600 transition"
+                >
+                  Voir mes dons
+                </Link>
+              </div>
             </div>
+
             {user?.id === data.id && (
               <div className="flex gap-2">
                 {editing ? (
                   <>
-                    <button onClick={handleSave}
-                      className="flex items-center gap-1.5 bg-green-500 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-green-600 transition">
+                    <button
+                      onClick={handleSave}
+                      className="flex items-center gap-1.5 bg-green-500 text-white text-xs font-semibold px-4 py-2 rounded-xl hover:bg-green-600 transition"
+                    >
                       <Check className="w-3.5 h-3.5" /> Sauvegarder
                     </button>
-                    <button onClick={() => setEditing(false)}
-                      className="p-2 rounded-xl hover:bg-gray-100 transition">
+                    <button
+                      onClick={() => setEditing(false)}
+                      className="p-2 rounded-xl hover:bg-gray-100 transition"
+                    >
                       <X className="w-4 h-4 text-gray-500" />
                     </button>
                   </>
                 ) : (
-                  <button onClick={() => setEditing(true)}
-                    className="flex items-center gap-1.5 border border-gray-200 text-gray-600 text-xs font-semibold px-4 py-2 rounded-xl hover:bg-gray-50 transition">
+                  <button
+                    onClick={() => setEditing(true)}
+                    className="flex items-center gap-1.5 border border-gray-200 text-gray-600 text-xs font-semibold px-4 py-2 rounded-xl hover:bg-gray-50 transition"
+                  >
                     <Edit2 className="w-3.5 h-3.5" /> Modifier
                   </button>
                 )}
@@ -124,7 +154,11 @@ export default function Profile() {
               />
             ) : (
               <p className="text-sm text-gray-600">
-                {data.bio || <span className="text-gray-400 italic">Aucune bio pour l'instant...</span>}
+                {data.bio || (
+                  <span className="text-gray-400 italic">
+                    Aucune bio pour l'instant...
+                  </span>
+                )}
               </p>
             )}
           </div>
@@ -132,15 +166,21 @@ export default function Profile() {
           {/* Stats */}
           <div className="flex gap-6 mt-4 pt-4 border-t border-gray-100">
             <div className="text-center">
-              <p className="text-lg font-black text-gray-900">{data.posts_count || 0}</p>
+              <p className="text-lg font-black text-gray-900">
+                {data.posts_count || 0}
+              </p>
               <p className="text-xs text-gray-400">Posts</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-black text-gray-900">{data.followers_count || 0}</p>
+              <p className="text-lg font-black text-gray-900">
+                {data.followers_count || 0}
+              </p>
               <p className="text-xs text-gray-400">Abonnés</p>
             </div>
             <div className="text-center">
-              <p className="text-lg font-black text-gray-900">{data.following_count || 0}</p>
+              <p className="text-lg font-black text-gray-900">
+                {data.following_count || 0}
+              </p>
               <p className="text-xs text-gray-400">Abonnements</p>
             </div>
           </div>

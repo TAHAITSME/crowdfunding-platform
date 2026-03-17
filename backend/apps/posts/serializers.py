@@ -8,8 +8,9 @@ class PostSerializer(serializers.ModelSerializer):
     tagged_association_name = serializers.CharField(
         source='tagged_association.name', read_only=True
     )
-    likes_count = serializers.SerializerMethodField()
-    is_liked    = serializers.SerializerMethodField()
+    likes_count    = serializers.SerializerMethodField()
+    is_liked       = serializers.SerializerMethodField()
+    comments_count = serializers.SerializerMethodField()
 
     class Meta:
         model  = Post
@@ -20,6 +21,7 @@ class PostSerializer(serializers.ModelSerializer):
             'is_repost', 'original_post',
             'is_visible', 'views_count', 'created_at',
             'likes_count', 'is_liked',
+            'comments_count',
         ]
         read_only_fields = ['id', 'author', 'views_count', 'created_at']
 
@@ -31,6 +33,10 @@ class PostSerializer(serializers.ModelSerializer):
         if request and request.user.is_authenticated:
             return obj.likes.filter(user=request.user).exists()
         return False
+
+    def get_comments_count(self, obj):
+        # suppose que dans Comment.post tu as related_name="comments"
+        return obj.comments.filter(is_visible=True).count()
 
     def validate(self, data):
         if data.get('post_type') == Post.SOLIDARITY and not data.get('tagged_association'):

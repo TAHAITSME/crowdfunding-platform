@@ -4,6 +4,8 @@ import { useDispatch, useSelector } from 'react-redux'
 import { logout } from '../../features/auth/authSlice'
 import { useNavigate } from 'react-router-dom'
 import Avatar from '../ui/Avatar'
+import NotificationBell from "../../features/notifications/NotificationBell";
+
 
 export default function Navbar() {
   const dispatch = useDispatch()
@@ -36,28 +38,33 @@ export default function Navbar() {
         </div>
 
         <div className="flex items-center gap-2">
-          <button className="relative p-2 rounded-xl hover:bg-gray-100 transition">
-            <Bell className="w-5 h-5 text-gray-600" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full" />
-          </button>
+          <NotificationBell />
+
           <button className="relative p-2 rounded-xl hover:bg-gray-100 transition">
             <MessageCircle className="w-5 h-5 text-gray-600" />
           </button>
 
           <div className="relative">
-            <button onClick={() => setDropdown(!dropdown)} className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-gray-100 transition">
+            <button
+              onClick={() => setDropdown(!dropdown)}
+              className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-gray-100 transition"
+            >
               <Avatar name={user?.username || 'U'} size="sm" online />
               <ChevronDown className="w-4 h-4 text-gray-500 hidden sm:block" />
             </button>
             {dropdown && (
               <div className="absolute right-0 top-12 bg-white rounded-2xl shadow-lg border border-gray-100 py-2 w-48 z-50">
-                <button onClick={() => { navigate('/profile'); setDropdown(false) }}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                <button
+                  onClick={() => { navigate('/profile'); setDropdown(false) }}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                >
                   <User className="w-4 h-4" /> Mon Profil
                 </button>
                 <hr className="my-1 border-gray-100" />
-                <button onClick={handleLogout}
-                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50">
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-500 hover:bg-red-50"
+                >
                   <LogOut className="w-4 h-4" /> Déconnexion
                 </button>
               </div>

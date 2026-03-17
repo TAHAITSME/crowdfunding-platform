@@ -19,8 +19,19 @@ class CommentListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         from apps.posts.models import Post
+        from apps.notifications.models import Notification
+
         post = generics.get_object_or_404(Post, pk=self.kwargs['pk'])
-        serializer.save(author=self.request.user, post=post)
+        comment = serializer.save(author=self.request.user, post=post)
+
+        # Créer une notification pour l'auteur du post (sauf si c'est lui-même)
+        if post.author != self.request.user:
+            Notification.objects.create(
+                user=post.author,
+                type=Notification.COMMENT,
+                title="Nouveau commentaire sur votre post",
+                message=f"{self.request.user.username} a commenté votre publication."
+            )
 
 
 class CommentDetailView(generics.RetrieveUpdateDestroyAPIView):

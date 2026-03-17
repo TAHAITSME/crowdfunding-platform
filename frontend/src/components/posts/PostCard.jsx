@@ -47,6 +47,7 @@ export default function PostCard({ post }) {
           {post.content}
         </p>
       )}
+
       {post.media && (
         <img
           src={`http://localhost:8000${post.media}`}
@@ -61,21 +62,31 @@ export default function PostCard({ post }) {
           <button
             onClick={() => dispatch(toggleLike(post.id))}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition
-              ${post.is_liked ? "text-red-500 bg-red-50" : "text-gray-500 hover:bg-gray-50"}`}
+              ${
+                post.is_liked
+                  ? "text-red-500 bg-red-50"
+                  : "text-gray-500 hover:bg-gray-50"
+              }`}
           >
             <Heart
               className={`w-4 h-4 ${post.is_liked ? "fill-red-500" : ""}`}
             />
             {post.likes_count || 0}
           </button>
+
           <button
             onClick={() => setShowComments(!showComments)}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition
-              ${showComments ? "text-green-600 bg-green-50" : "text-gray-500 hover:bg-gray-50"}`}
+              ${
+                showComments
+                  ? "text-green-600 bg-green-50"
+                  : "text-gray-500 hover:bg-gray-50"
+              }`}
           >
             <MessageCircle className="w-4 h-4" />
             {post.comments_count || 0}
           </button>
+
           <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-gray-500 hover:bg-gray-50 transition">
             <Share2 className="w-4 h-4" />
             Partager

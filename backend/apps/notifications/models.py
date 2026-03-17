@@ -1,3 +1,35 @@
+# backend/apps/notifications/models.py
+import uuid
 from django.db import models
+from django.utils import timezone
+from apps.users.models import User
 
-# Create your models here.
+class Notification(models.Model):
+    LIKE        = 'like'
+    COMMENT     = 'comment'
+    DONATION    = 'donation'
+    FRIEND      = 'friend_request'
+    MESSAGE     = 'message'
+
+    TYPE_CHOICES = [
+        (LIKE,    'Like'),
+        (COMMENT, 'Commentaire'),
+        (DONATION,'Don'),
+        (FRIEND,  'Demande d\'ami'),
+        (MESSAGE, 'Message'),
+    ]
+
+    id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    type       = models.CharField(max_length=30, choices=TYPE_CHOICES)
+    title      = models.CharField(max_length=200)
+    message    = models.TextField(blank=True)
+    is_read    = models.BooleanField(default=False)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        db_table  = 'notifications'
+        ordering  = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} – {self.type} – {self.title}"

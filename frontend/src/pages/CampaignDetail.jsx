@@ -9,7 +9,7 @@ export default function CampaignDetail() {
   const { id } = useParams()
   const dispatch = useDispatch()
   const { current: campaign, loading, error } = useSelector((s) => s.campaigns)
-  const [showModal, setShowModal] = useState(false)  // ✅ ajouté
+  const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
     dispatch(fetchCampaign(id))
@@ -21,17 +21,32 @@ export default function CampaignDetail() {
 
   return (
     <div className="max-w-3xl mx-auto p-6">
-
       {/* Image */}
-      {campaign.image
-        ? <img src={campaign.image} alt={campaign.title} className="w-full h-56 object-cover rounded-xl mb-6" />
-        : <div className="w-full h-56 bg-green-100 rounded-xl flex items-center justify-center text-6xl mb-6">🌱</div>
-      }
+      {campaign.image ? (
+        <img
+          src={`http://localhost:8000${campaign.image}`}
+          alt={campaign.title}
+          className="w-full h-56 object-cover rounded-xl mb-6"
+        />
+      ) : (
+        <div className="w-full h-56 bg-green-100 rounded-xl flex items-center justify-center text-6xl mb-6">
+          🌱
+        </div>
+      )}
 
       {/* Header */}
-      <span className="text-xs text-green-600 font-semibold uppercase">{campaign.category}</span>
-      <h1 className="text-3xl font-bold text-gray-800 mt-1 mb-1">{campaign.title}</h1>
-      <p className="text-sm text-gray-400 mb-4">Par <span className="font-medium text-gray-600">{campaign.association_name}</span></p>
+      <span className="text-xs text-green-600 font-semibold uppercase">
+        {campaign.category}
+      </span>
+      <h1 className="text-3xl font-bold text-gray-800 mt-1 mb-1">
+        {campaign.title}
+      </h1>
+      <p className="text-sm text-gray-400 mb-4">
+        Par{' '}
+        <span className="font-medium text-gray-600">
+          {campaign.association_name}
+        </span>
+      </p>
       <p className="text-gray-600 mb-6">{campaign.description}</p>
 
       {/* Progression */}
@@ -43,17 +58,36 @@ export default function CampaignDetail() {
           />
         </div>
         <div className="flex justify-between text-sm text-gray-600">
-          <span><strong>{Number(campaign.current_amount).toLocaleString()} MAD</strong> collectés</span>
-          <span>Objectif : <strong>{Number(campaign.goal_amount).toLocaleString()} MAD</strong></span>
+          <span>
+            <strong>{Number(campaign.current_amount).toLocaleString()} MAD</strong> collectés
+          </span>
+          <span>
+            Objectif :{' '}
+            <strong>{Number(campaign.goal_amount).toLocaleString()} MAD</strong>
+          </span>
         </div>
-        <p className="text-center text-green-600 font-bold text-xl mt-2">{campaign.progress_percentage}%</p>
+        <p className="text-center text-green-600 font-bold text-xl mt-2">
+          {campaign.progress_percentage}%
+        </p>
       </div>
 
       {/* Statuts */}
       <div className="flex gap-3 flex-wrap mb-6">
-        {campaign.is_completed && <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">✅ Objectif atteint</span>}
-        {campaign.is_expired   && <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm">⏰ Expirée</span>}
-        {!campaign.is_expired  && !campaign.is_completed && <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm">🔵 En cours</span>}
+        {campaign.is_completed && (
+          <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+            ✅ Objectif atteint
+          </span>
+        )}
+        {campaign.is_expired && (
+          <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm">
+            ⏰ Expirée
+          </span>
+        )}
+        {!campaign.is_expired && !campaign.is_completed && (
+          <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm">
+            🔵 En cours
+          </span>
+        )}
       </div>
 
       {/* Bouton don + Modal */}

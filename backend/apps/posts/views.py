@@ -2,6 +2,7 @@
 from rest_framework import generics, permissions, status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
 from .models import Post, SavedPost
 from .serializers import PostSerializer
 
@@ -9,6 +10,7 @@ from .serializers import PostSerializer
 class PostListCreateView(generics.ListCreateAPIView):
     serializer_class   = PostSerializer
     permission_classes = [permissions.IsAuthenticatedOrReadOnly]
+    parser_classes     = [MultiPartParser, FormParser]
 
     def get_queryset(self):
         return Post.objects.filter(is_visible=True).select_related(
@@ -32,7 +34,8 @@ class PostListCreateView(generics.ListCreateAPIView):
         user.daily_post_count += 1
         user.save()
 
-        serializer.save(author=self.request.user)
+        # on force is_visible=True pour les nouveaux posts
+        serializer.save(author=self.request.user, is_visible=True)
 
 
 class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -78,12 +81,15 @@ class SavedPostListView(generics.ListAPIView):
             is_visible=True
         )
 
+
 class LikePostView(APIView):
     """Liker ou unliker un post"""
     permission_classes = [permissions.IsAuthenticated]
 
     def post(self, request, pk):
-        from .models import Like
+        from .models import Like, Post
+        from apps.notifications.models import Notification
+
         post = generics.get_object_or_404(Post, pk=pk)
         like, created = Like.objects.get_or_create(user=request.user, post=post)
 
@@ -93,6 +99,16 @@ class LikePostView(APIView):
                 'is_liked': False,
                 'likes_count': post.likes.count()
             })
+
+        # Créer une notification pour l'auteur du post (sauf si c'est lui-même)
+        if post.author != request.user:
+            Notification.objects.create(
+                user=post.author,
+                type=Notification.LIKE,
+                title="Nouveau like sur votre post",
+                message=f"{request.user.username} a aimé votre publication."
+            )
+
         return Response({
             'is_liked': True,
             'likes_count': post.likes.count()

@@ -25,6 +25,7 @@ INSTALLED_APPS = [
     "apps.donations",
     "apps.comments",
     "apps.reactions",
+    'apps.notifications', 
 ]
 
 MIDDLEWARE = [
