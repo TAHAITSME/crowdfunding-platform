@@ -20,7 +20,7 @@ export default function DonationModal({ campaign, onClose }) {
       dispatch(fetchCampaign(campaign.id)) // rafraîchit la progression
       onClose()
     }
-  }, [success])
+  }, [success, campaign.id, dispatch, onClose])
 
   const handleSubmit = (e) => {
     e.preventDefault()

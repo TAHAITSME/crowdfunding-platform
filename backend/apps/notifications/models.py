@@ -2,6 +2,7 @@
 import uuid
 from django.db import models
 from django.utils import timezone
+from django.conf import settings
 from apps.users.models import User
 
 class Notification(models.Model):
@@ -10,6 +11,7 @@ class Notification(models.Model):
     DONATION    = 'donation'
     FRIEND      = 'friend_request'
     MESSAGE     = 'message'
+    FOLLOW      = 'follow'
 
     TYPE_CHOICES = [
         (LIKE,    'Like'),
@@ -17,10 +19,12 @@ class Notification(models.Model):
         (DONATION,'Don'),
         (FRIEND,  'Demande d\'ami'),
         (MESSAGE, 'Message'),
+        (FOLLOW,  'Suivi'),
     ]
 
     id         = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    user       = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    recipient  = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    sender     = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='sent_notifications', null=True, blank=True)
     type       = models.CharField(max_length=30, choices=TYPE_CHOICES)
     title      = models.CharField(max_length=200)
     message    = models.TextField(blank=True)
@@ -32,4 +36,4 @@ class Notification(models.Model):
         ordering  = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.username} – {self.type} – {self.title}"
+        return f"{self.recipient.username} – {self.type} – {self.title}"

@@ -28,9 +28,10 @@ export const registerUser = createAsyncThunk('auth/register', async (userData, t
     const res = await api.post('/auth/register/', userData)
     return res.data
   } catch (err) {
-    return thunkAPI.rejectWithValue(err.response.data)
+    return thunkAPI.rejectWithValue(err.response?.data || 'Erreur inscription')
   }
 })
+
 
 const authSlice = createSlice({
   name: 'auth',
@@ -57,7 +58,9 @@ const authSlice = createSlice({
         s.user    = a.payload.user
       })
       .addCase(loginUser.rejected,  (s, a) => { s.loading = false; s.error = a.payload })
-      .addCase(fetchMe.fulfilled,   (s, a) => { s.user = a.payload })
+      .addCase(fetchMe.pending,     (s) => { s.loading = true; s.error = null })
+      .addCase(fetchMe.fulfilled,   (s, a) => { s.loading = false; s.user = a.payload })
+      .addCase(fetchMe.rejected,    (s, a) => { s.loading = false; s.error = a.payload })
       .addCase(registerUser.pending,   (s) => { s.loading = true })
       .addCase(registerUser.fulfilled, (s) => { s.loading = false })
       .addCase(registerUser.rejected,  (s, a) => { s.loading = false; s.error = a.payload })

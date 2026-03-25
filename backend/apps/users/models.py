@@ -1,65 +1,42 @@
-from django.db import models
-
-# Create your models here.
 # backend/apps/users/models.py
 import uuid
+from django.conf import settings
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
 class User(AbstractUser):
-    """
-    Modèle User personnalisé.
-    On hérite de AbstractUser pour garder tout le système
-    d'authentification de Django (password hashing, permissions...).
-    On ajoute nos propres champs en plus.
-    """
-
-    # Rôles possibles sur la plateforme
-    ROLE_USER        = 'user'
+    ROLE_USER = 'user'
     ROLE_ASSOCIATION = 'association'
-    ROLE_ADMIN       = 'admin'
+    ROLE_ADMIN = 'admin'
 
     ROLE_CHOICES = [
-        (ROLE_USER,        'Utilisateur'),
+        (ROLE_USER, 'Utilisateur'),
         (ROLE_ASSOCIATION, 'Association'),
-        (ROLE_ADMIN,       'Administrateur'),
+        (ROLE_ADMIN, 'Administrateur'),
     ]
 
-    # UUID comme clé primaire — plus sécurisé que les entiers auto-incrémentés
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-
-    # On utilise l'email pour se connecter (pas le username)
     email = models.EmailField(unique=True)
+    phone = models.CharField(max_length=20, blank=True)
+    cin = models.CharField(max_length=20, blank=True, unique=True)  # ← unique ajouté
+    full_name = models.CharField(max_length=150, blank=True)         # ← nouveau
+    document = models.FileField(upload_to='associations/documents/', blank=True, null=True)  # ← nouveau
 
-    # Informations personnelles (obligatoires pour faire un don)
-    phone  = models.CharField(max_length=20, blank=True)
-    cin    = models.CharField(max_length=20, blank=True)  # Confidentiel
-
-    # Profil
-    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
-    bio    = models.TextField(blank=True)
-
-    # Rôle sur la plateforme
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_USER)
-
-    # Statut du compte
     is_verified = models.BooleanField(default=False)
-
-    # Préférences
     dark_mode = models.BooleanField(default=False)
 
-    # Anti-spam : limite de publications par jour
     daily_post_count = models.IntegerField(default=0)
-    last_post_date   = models.DateField(null=True, blank=True)
+    last_post_date = models.DateField(null=True, blank=True)
 
-    # Timestamps
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    # On utilise l'email comme identifiant de connexion
-    USERNAME_FIELD  = 'email'
-    REQUIRED_FIELDS = ['username']  # Toujours requis par Django
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username']
+    # ...reste inchangé
+
 
     class Meta:
         db_table = 'users'
@@ -71,7 +48,6 @@ class User(AbstractUser):
     def __str__(self):
         return f"{self.username} ({self.role})"
 
-    # ── Helpers pratiques ──────────────────────────────────
     @property
     def is_association(self):
         return self.role == self.ROLE_ASSOCIATION
@@ -79,3 +55,37 @@ class User(AbstractUser):
     @property
     def is_regular_user(self):
         return self.role == self.ROLE_USER
+
+
+class Profile(models.Model):
+    PUBLIC = 'public'
+    PRIVATE = 'private'
+
+    PRIVACY_CHOICES = [
+        (PUBLIC, 'Public'),
+        (PRIVATE, 'Privé'),
+    ]
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='profile')
+
+    avatar = models.ImageField(upload_to='profiles/avatars/', blank=True, null=True)
+    cover_image = models.ImageField(upload_to='profiles/covers/', blank=True, null=True)
+
+    headline = models.CharField(max_length=120, blank=True)
+    bio = models.TextField(blank=True)
+    location = models.CharField(max_length=120, blank=True)
+
+    website = models.URLField(blank=True)
+    linkedin = models.URLField(blank=True)
+
+    privacy = models.CharField(max_length=10, choices=PRIVACY_CHOICES, default=PUBLIC)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'profiles'
+
+    def __str__(self):
+        return f"Profile of {self.user.username}"

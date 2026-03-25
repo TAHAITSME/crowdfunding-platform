@@ -1,20 +1,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import axios from 'axios';
-
-const API_BASE = 'http://localhost:8000/api';
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('access_token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+import api from '../../services/api';
 
 export const fetchNotifications = createAsyncThunk(
   'notifications/fetchNotifications',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_BASE}/notifications/`, {
-        headers: getAuthHeaders(),
-      });
+      const response = await api.get('/notifications/');
       return response.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || 'Erreur');
@@ -26,10 +17,32 @@ export const fetchUnreadCount = createAsyncThunk(
   'notifications/fetchUnreadCount',
   async (_, { rejectWithValue }) => {
     try {
-      const response = await axios.get(`${API_BASE}/notifications/unread/`, {
-        headers: getAuthHeaders(),
-      });
-      return response.data.unread;
+      const response = await api.get('/notifications/unread/');
+      return response.data.count;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || 'Erreur');
+    }
+  }
+);
+
+export const markAsRead = createAsyncThunk(
+  'notifications/markAsRead',
+  async (notificationId, { rejectWithValue }) => {
+    try {
+      const response = await api.patch(`/notifications/${notificationId}/read/`);
+      return response.data;
+    } catch (err) {
+      return rejectWithValue(err.response?.data || 'Erreur');
+    }
+  }
+);
+
+export const markAllAsRead = createAsyncThunk(
+  'notifications/markAllAsRead',
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.patch('/notifications/read-all/');
+      return response.data;
     } catch (err) {
       return rejectWithValue(err.response?.data || 'Erreur');
     }
@@ -64,8 +77,30 @@ const notificationsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
+      .addCase(fetchUnreadCount.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(fetchUnreadCount.fulfilled, (state, action) => {
+        state.loading = false;
         state.unreadCount = action.payload;
+      })
+      .addCase(fetchUnreadCount.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      })
+      .addCase(markAsRead.fulfilled, (state, action) => {
+        const index = state.items.findIndex(n => n.id === action.payload.id);
+        if (index !== -1) {
+          state.items[index].is_read = true;
+          if (!state.items[index].is_read) {
+            state.unreadCount = Math.max(0, state.unreadCount - 1);
+          }
+        }
+      })
+      .addCase(markAllAsRead.fulfilled, (state) => {
+        state.items.forEach(item => item.is_read = true);
+        state.unreadCount = 0;
       });
   },
 });

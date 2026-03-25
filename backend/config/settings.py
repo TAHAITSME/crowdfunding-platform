@@ -18,14 +18,16 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "corsheaders",
-    "apps.users",
     "apps.associations",
     "apps.posts",
+    'apps.messaging',
     "apps.campaigns",
     "apps.donations",
     "apps.comments",
     "apps.reactions",
+    "apps.follows",
     'apps.notifications', 
+    'apps.users.apps.UsersConfig',
 ]
 
 MIDDLEWARE = [

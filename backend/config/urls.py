@@ -15,6 +15,8 @@ urlpatterns = [
     path('api/', include('apps.reactions.urls')),
     path('api/', include('apps.comments.urls')),
     path('api/', include('apps.notifications.urls')),
+    path('api/', include('apps.follows.urls')),
+    path('api/messaging/', include('apps.messaging.urls')),
 
 ]
 

@@ -6,14 +6,14 @@ import { Send } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { fr } from 'date-fns/locale'
 
-export default function CommentSection({ postId, onClose }) {
+export default function CommentSection({ postId }) {
   const dispatch = useDispatch()
   const { user }     = useSelector(s => s.auth)
   const comments     = useSelector(s => s.comments.byPost[postId] || [])
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
 
-  useEffect(() => { dispatch(fetchComments(postId)) }, [postId])
+  useEffect(() => { dispatch(fetchComments(postId)) }, [postId, dispatch])
 
   const handleSubmit = async () => {
     if (!text.trim()) return

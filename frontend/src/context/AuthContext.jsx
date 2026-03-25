@@ -20,7 +20,7 @@ export function AuthProvider({ children }) {
         })
         .finally(() => setLoading(false))
     } else {
-      setLoading(false)
+      // No token, user stays null
     }
   }, [])
 

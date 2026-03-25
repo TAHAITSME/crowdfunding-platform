@@ -5,7 +5,8 @@ import commentsReducer  from '../features/comments/commentsSlice'
 import profileReducer   from '../features/profile/profileSlice'
 import campaignsReducer from '../features/campaigns/campaignSlice'
 import donationsReducer from '../features/donations/donationSlice'
-import notificationsReducer from '../features/notifications/notificationsSlice';
+import notificationsReducer from '../features/notifications/notificationsSlice'
+import followReducer from '../features/follow/followSlice'
 
 
 export const store = configureStore({
@@ -17,5 +18,6 @@ export const store = configureStore({
     campaigns: campaignsReducer,
     donations: donationsReducer,  
     notifications: notificationsReducer,
+    follow: followReducer,
   }
 })
