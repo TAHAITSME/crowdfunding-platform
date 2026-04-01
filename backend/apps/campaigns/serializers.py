@@ -1,11 +1,9 @@
 # backend/apps/campaigns/serializers.py
 from rest_framework import serializers
 from .models import Campaign
-from apps.associations.serializers import AssociationSerializer
 
 
 class CampaignSerializer(serializers.ModelSerializer):
-    # Champs calculés — lecture seule
     progress_percentage = serializers.ReadOnlyField()
     is_completed        = serializers.ReadOnlyField()
     is_expired          = serializers.ReadOnlyField()
@@ -20,10 +18,9 @@ class CampaignSerializer(serializers.ModelSerializer):
             'progress_percentage', 'is_completed', 'is_expired',
             'created_at',
         ]
-        read_only_fields = ['id', 'current_amount', 'created_at']
+        read_only_fields = ['id', 'current_amount', 'created_at', 'association']  # ✅
 
     def validate(self, data):
-        """Vérifier que la deadline est dans le futur"""
         from django.utils import timezone
         if data.get('deadline') and data['deadline'] <= timezone.now():
             raise serializers.ValidationError("La deadline doit être dans le futur.")

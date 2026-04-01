@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from .models import Donation
 from .serializers import DonationSerializer, CreateDonationSerializer
 from .services import DonationService
-from apps.campaigns.models import Campaign
 
 
 class MakeDonationView(APIView):
@@ -14,25 +13,24 @@ class MakeDonationView(APIView):
 
     def post(self, request):
         serializer = CreateDonationSerializer(data=request.data)
+
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         try:
-            campaign = Campaign.objects.get(pk=serializer.validated_data['campaign_id'])
-        except Campaign.DoesNotExist:
-            return Response({'error': 'Campagne introuvable.'}, status=status.HTTP_404_NOT_FOUND)
-
-        try:
             donation = DonationService.process_donation(
                 donor=request.user,
-                campaign=campaign,
+                campaign=serializer.validated_data['campaign'],
                 amount=serializer.validated_data['amount'],
-                is_anonymous=serializer.validated_data['is_anonymous'],
+                is_anonymous=serializer.validated_data.get('is_anonymous', False),
             )
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        return Response(DonationSerializer(donation).data, status=status.HTTP_201_CREATED)
+        return Response(
+            DonationSerializer(donation).data,
+            status=status.HTTP_201_CREATED
+        )
 
 
 class DonationHistoryView(generics.ListAPIView):

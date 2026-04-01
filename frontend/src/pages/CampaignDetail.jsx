@@ -1,112 +1,198 @@
 // src/pages/CampaignDetail.jsx
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import { fetchCampaign } from '../features/campaigns/campaignSlice'
 import DonationModal from '../components/DonationModal'
+import { ArrowLeft, Clock, CheckCircle, XCircle, Tag } from 'lucide-react'
+
+const CATEGORY_LABELS = {
+  health:       '🏥 Santé',
+  education:    '🎓 Éducation',
+  environment:  '🌿 Environnement',
+  humanitarian: '🤝 Humanitaire',
+  emergency:    '🚨 Urgence',
+}
 
 export default function CampaignDetail() {
-  const { id } = useParams()
-  const dispatch = useDispatch()
-  const { current: campaign, loading, error } = useSelector((s) => s.campaigns)
+  const { id }       = useParams()
+  const dispatch     = useDispatch()
+  const navigate     = useNavigate()
+  const { current: campaign, loading, error } = useSelector(s => s.campaigns)
   const [showModal, setShowModal] = useState(false)
 
   useEffect(() => {
     dispatch(fetchCampaign(id))
   }, [id, dispatch])
 
-  if (loading)   return <p className="p-6 text-gray-500">Chargement...</p>
-  if (error)     return <p className="p-6 text-red-500">Erreur : {JSON.stringify(error)}</p>
+  // ── Loading ──────────────────────────────────────────────────
+  if (loading) return (
+    <div className="max-w-3xl mx-auto p-6 space-y-4 animate-pulse">
+      <div className="w-full h-56 bg-slate-200 rounded-2xl" />
+      <div className="h-6 bg-slate-200 rounded w-3/4" />
+      <div className="h-4 bg-slate-100 rounded w-1/2" />
+      <div className="h-24 bg-slate-100 rounded" />
+    </div>
+  )
+
+  // ── Erreur ───────────────────────────────────────────────────
+  if (error) return (
+    <div className="max-w-3xl mx-auto p-6">
+      <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+        Erreur : {typeof error === 'string' ? error : JSON.stringify(error)}
+      </div>
+    </div>
+  )
+
   if (!campaign) return null
 
+  const imageUrl = campaign.image
+    ? (campaign.image.startsWith('http')
+        ? campaign.image
+        : `http://localhost:8000${campaign.image}`)
+    : null
+
+  const canDonate = !campaign.is_expired && !campaign.is_completed
+
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      {/* Image */}
-      {campaign.image ? (
-        <img
-          src={`http://localhost:8000${campaign.image}`}
-          alt={campaign.title}
-          className="w-full h-56 object-cover rounded-xl mb-6"
-        />
-      ) : (
-        <div className="w-full h-56 bg-green-100 rounded-xl flex items-center justify-center text-6xl mb-6">
-          🌱
-        </div>
-      )}
+    <div className="max-w-3xl mx-auto pb-16">
 
-      {/* Header */}
-      <span className="text-xs text-green-600 font-semibold uppercase">
-        {campaign.category}
-      </span>
-      <h1 className="text-3xl font-bold text-gray-800 mt-1 mb-1">
-        {campaign.title}
-      </h1>
-      <p className="text-sm text-gray-400 mb-4">
-        Par{' '}
-        <span className="font-medium text-gray-600">
-          {campaign.association_name}
-        </span>
-      </p>
-      <p className="text-gray-600 mb-6">{campaign.description}</p>
+      {/* ── Image ── */}
+      {imageUrl
+        ? <img src={imageUrl} alt={campaign.title}
+               className="w-full h-64 object-cover rounded-b-3xl mb-6" />
+        : <div className="w-full h-64 bg-indigo-50 rounded-b-3xl flex items-center
+                          justify-center text-7xl mb-6">📢</div>
+      }
 
-      {/* Progression */}
-      <div className="bg-white rounded-xl shadow p-4 mb-6">
-        <div className="w-full bg-gray-100 rounded-full h-3 mb-2">
-          <div
-            className="bg-green-500 h-3 rounded-full transition-all"
-            style={{ width: `${campaign.progress_percentage}%` }}
-          />
+      <div className="px-6 space-y-6">
+
+        {/* ── Back button ── */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1.5 text-sm text-slate-500
+                     hover:text-slate-700 transition">
+          <ArrowLeft className="w-4 h-4" /> Retour
+        </button>
+
+        {/* ── Header ── */}
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs px-2.5 py-0.5 bg-indigo-50 text-indigo-600
+                             rounded-full font-medium flex items-center gap-1">
+              <Tag className="w-3 h-3" />
+              {CATEGORY_LABELS[campaign.category] || campaign.category}
+            </span>
+
+            {/* Status badge */}
+            {campaign.is_completed && (
+              <span className="text-xs px-2.5 py-0.5 bg-emerald-50 text-emerald-600
+                               rounded-full font-medium flex items-center gap-1">
+                <CheckCircle className="w-3 h-3" /> Objectif atteint
+              </span>
+            )}
+            {campaign.is_expired && !campaign.is_completed && (
+              <span className="text-xs px-2.5 py-0.5 bg-red-50 text-red-500
+                               rounded-full font-medium flex items-center gap-1">
+                <XCircle className="w-3 h-3" /> Expirée
+              </span>
+            )}
+            {canDonate && (
+              <span className="text-xs px-2.5 py-0.5 bg-blue-50 text-blue-600
+                               rounded-full font-medium">
+                🔵 En cours
+              </span>
+            )}
+          </div>
+
+          <h1 className="text-2xl font-bold text-slate-800 mb-1">
+            {campaign.title}
+          </h1>
+          <p className="text-sm text-slate-500">
+            Par <span className="font-semibold text-slate-700">
+              {campaign.association_name}
+            </span>
+          </p>
         </div>
-        <div className="flex justify-between text-sm text-gray-600">
-          <span>
-            <strong>{Number(campaign.current_amount).toLocaleString()} MAD</strong> collectés
-          </span>
-          <span>
-            Objectif :{' '}
-            <strong>{Number(campaign.goal_amount).toLocaleString()} MAD</strong>
-          </span>
-        </div>
-        <p className="text-center text-green-600 font-bold text-xl mt-2">
-          {campaign.progress_percentage}%
+
+        {/* ── Description ── */}
+        <p className="text-slate-600 leading-relaxed text-sm">
+          {campaign.description}
         </p>
-      </div>
 
-      {/* Statuts */}
-      <div className="flex gap-3 flex-wrap mb-6">
-        {campaign.is_completed && (
-          <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
-            ✅ Objectif atteint
-          </span>
-        )}
-        {campaign.is_expired && (
-          <span className="bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm">
-            ⏰ Expirée
-          </span>
-        )}
-        {!campaign.is_expired && !campaign.is_completed && (
-          <span className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm">
-            🔵 En cours
-          </span>
-        )}
-      </div>
+        {/* ── Progression ── */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <div className="flex justify-between items-end mb-2">
+            <div>
+              <p className="text-2xl font-bold text-slate-800">
+                {Number(campaign.current_amount).toLocaleString()}
+                <span className="text-base font-medium text-slate-500 ml-1">MAD</span>
+              </p>
+              <p className="text-xs text-slate-400">collectés</p>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-bold text-indigo-500">
+                {campaign.progress_percentage}%
+              </p>
+              <p className="text-xs text-slate-400">de l'objectif</p>
+            </div>
+          </div>
 
-      {/* Bouton don + Modal */}
-      {!campaign.is_expired && !campaign.is_completed && (
-        <>
+          {/* Progress bar */}
+          <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden mb-2">
+            <div
+              className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(campaign.progress_percentage, 100)}%` }}
+            />
+          </div>
+
+          <div className="flex justify-between text-xs text-slate-400">
+            <span>0 MAD</span>
+            <span>Objectif : {Number(campaign.goal_amount).toLocaleString()} MAD</span>
+          </div>
+
+          {/* Deadline */}
+          <div className="flex items-center gap-1.5 mt-4 pt-4
+                          border-t border-slate-100 text-xs text-slate-500">
+            <Clock className="w-3.5 h-3.5" />
+            Date limite : {new Date(campaign.deadline).toLocaleDateString('fr-FR', {
+              day: 'numeric', month: 'long', year: 'numeric',
+              hour: '2-digit', minute: '2-digit'
+            })}
+          </div>
+        </div>
+
+        {/* ── Bouton Don ── */}
+        {canDonate && (
           <button
             onClick={() => setShowModal(true)}
-            className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition"
-          >
+            className="w-full py-4 bg-indigo-500 hover:bg-indigo-600
+                       text-white font-bold rounded-2xl transition
+                       shadow-lg shadow-indigo-200 active:scale-[0.99] text-sm">
             💚 Faire un don
           </button>
+        )}
 
-          {showModal && (
-            <DonationModal
-              campaign={campaign}
-              onClose={() => setShowModal(false)}
-            />
-          )}
-        </>
+        {/* Message si expirée ou complétée */}
+        {!canDonate && (
+          <div className={`w-full py-4 rounded-2xl text-center font-semibold text-sm
+            ${campaign.is_completed
+              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
+              : 'bg-slate-100 text-slate-500 border border-slate-200'
+            }`}>
+            {campaign.is_completed
+              ? '✅ Cette campagne a atteint son objectif !'
+              : '⏰ Cette campagne est terminée'}
+          </div>
+        )}
+      </div>
+
+      {/* ── Modal Don ── */}
+      {showModal && (
+        <DonationModal
+          campaign={campaign}
+          onClose={() => setShowModal(false)}
+        />
       )}
     </div>
   )
