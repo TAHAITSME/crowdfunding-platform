@@ -1,6 +1,9 @@
 from pathlib import Path
 from decouple import config
 from datetime import timedelta
+import pymysql
+
+pymysql.install_as_MySQLdb()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -26,6 +29,7 @@ INSTALLED_APPS = [
     "apps.comments",
     "apps.reactions",
     "apps.follows",
+    "apps.friendships",
     'apps.notifications', 
     'apps.users.apps.UsersConfig',
 ]
@@ -60,6 +64,10 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "config.wsgi.application"
+STRIPE_SECRET_KEY    = config('STRIPE_SECRET_KEY',    default='sk_test_...')
+STRIPE_PUBLISHABLE_KEY = config('STRIPE_PUBLISHABLE_KEY', default='pk_test_...')
+STRIPE_WEBHOOK_SECRET = config('STRIPE_WEBHOOK_SECRET', default='whsec_...')
+FRONTEND_URL         = config('FRONTEND_URL',         default='http://localhost:5173')
 
 DATABASES = {
     "default": {
@@ -90,6 +98,19 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:5174",
+    "http://127.0.0.1:5174",
+    "http://localhost:5175",
+    "http://127.0.0.1:5175",
+]
+
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://localhost:\d+$",
+    r"^http://127\.0\.0\.1:\d+$",
+    r"^http://192\.168\.\d+\.\d+:\d+$",
+    r"^http://10\.\d+\.\d+\.\d+:\d+$",
+    r"^http://172\.(1[6-9]|2\d|3[0-1])\.\d+\.\d+:\d+$",
 ]
 
 REST_FRAMEWORK = {

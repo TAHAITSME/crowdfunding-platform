@@ -1,5 +1,5 @@
 :root {
-  --green-50:  #f0fdf4;
+  --green-50: #f0fdf4;
   --green-100: #dcfce7;
   --green-400: #4ade80;
   --green-500: #22c55e;
@@ -7,19 +7,115 @@
   --green-700: #15803d;
   --green-900: #14532d;
 
-  --gray-50:  #f9fafb;
-  --gray-100: #f3f4f6;
-  --gray-200: #e5e7eb;
-  --gray-400: #9ca3af;
-  --gray-600: #4b5563;
-  --gray-900: #111827;
+  --surface-base: #ffffff;
+  --surface-soft: #f7f7f8;
+  --surface-muted: #efeff1;
+  --surface-elevated: #ffffff;
+  --surface-strong: #111827;
+  --border-soft: #e9eaec;
+  --border-strong: #d7d9dd;
+  --text-strong: #101828;
+  --text-body: #344054;
+  --text-muted: #667085;
+  --text-soft: #98a2b3;
+  --shadow-sm: 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 12px 30px rgba(16, 24, 40, 0.06);
+  --shadow-lg: 0 24px 60px rgba(16, 24, 40, 0.1);
+}
 
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+html[data-theme='dark'] {
+  --surface-base: #000000;
+  --surface-soft: #0f0f10;
+  --surface-muted: #1a1a1c;
+  --surface-elevated: #121214;
+  --surface-strong: #fafafa;
+  --border-soft: #26272b;
+  --border-strong: #34353a;
+  --text-strong: #fafafa;
+  --text-body: #e4e7ec;
+  --text-muted: #9aa1ad;
+  --text-soft: #6c727f;
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 14px 36px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 28px 72px rgba(0, 0, 0, 0.45);
+}
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 24px;
+html[data-theme='dark'] body,
+html[data-theme='dark'] #root {
+  background: var(--surface-base);
+  color: var(--text-strong);
+}
+
+html[data-theme='dark'] .bg-white {
+  background-color: var(--surface-elevated) !important;
+}
+
+html[data-theme='dark'] .bg-slate-50,
+html[data-theme='dark'] .bg-gray-50 {
+  background-color: var(--surface-soft) !important;
+}
+
+html[data-theme='dark'] .bg-slate-100,
+html[data-theme='dark'] .bg-gray-100 {
+  background-color: var(--surface-muted) !important;
+}
+
+html[data-theme='dark'] .bg-slate-900 {
+  background-color: #09090b !important;
+}
+
+html[data-theme='dark'] .text-gray-900,
+html[data-theme='dark'] .text-slate-900,
+html[data-theme='dark'] .text-slate-950 {
+  color: var(--text-strong) !important;
+}
+
+html[data-theme='dark'] .text-gray-800,
+html[data-theme='dark'] .text-slate-800,
+html[data-theme='dark'] .text-gray-700,
+html[data-theme='dark'] .text-slate-700,
+html[data-theme='dark'] .text-gray-600,
+html[data-theme='dark'] .text-slate-600 {
+  color: var(--text-body) !important;
+}
+
+html[data-theme='dark'] .text-gray-500,
+html[data-theme='dark'] .text-slate-500,
+html[data-theme='dark'] .text-gray-400,
+html[data-theme='dark'] .text-slate-400 {
+  color: var(--text-muted) !important;
+}
+
+html[data-theme='dark'] .border-gray-100,
+html[data-theme='dark'] .border-gray-200,
+html[data-theme='dark'] .border-slate-100,
+html[data-theme='dark'] .border-slate-200 {
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme='dark'] .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+html[data-theme='dark'] .divide-gray-100 > :not([hidden]) ~ :not([hidden]) {
+  border-color: var(--border-soft) !important;
+}
+
+html[data-theme='dark'] .shadow-sm,
+html[data-theme='dark'] .shadow-md,
+html[data-theme='dark'] .shadow-lg,
+html[data-theme='dark'] .shadow-xl,
+html[data-theme='dark'] .shadow-2xl {
+  box-shadow: var(--shadow-md) !important;
+}
+
+html[data-theme='dark'] input,
+html[data-theme='dark'] textarea,
+html[data-theme='dark'] select {
+  color: var(--text-strong);
+}
+
+html[data-theme='dark'] ::placeholder {
+  color: var(--text-soft);
+}
+
+html[data-theme='dark'] .ring-white {
+  --tw-ring-color: #121214 !important;
 }

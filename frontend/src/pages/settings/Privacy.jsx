@@ -1,161 +1,97 @@
 import { useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
-import api from '../../services/api'
 
-export default function Privacy() {
-  const navigate = useNavigate()
+import api from '../../services/api'
+import SettingsSectionShell from './SettingsSectionShell'
+
+function ToggleRow({ title, description, checked, onChange }) {
+  return (
+    <div className="flex items-start justify-between gap-4 rounded-[24px] border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="min-w-0">
+        <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">{title}</h3>
+        <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</p>
+      </div>
+
+      <label className="relative mt-1 inline-flex shrink-0 cursor-pointer items-center">
+        <input type="checkbox" checked={checked} onChange={onChange} className="peer sr-only" />
+        <div className="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-emerald-600 peer-focus:ring-4 peer-focus:ring-emerald-100 dark:bg-slate-700">
+          <div className="absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white transition peer-checked:translate-x-5" />
+        </div>
+      </label>
+    </div>
+  )
+}
+
+export default function Privacy({ showHeading = true }) {
   const [loading, setLoading] = useState(false)
+  const [message, setMessage] = useState('')
   const [privacy, setPrivacy] = useState({
     profile_public: true,
     show_email: false,
     allow_messaging: true,
     allow_follow_requests: false,
   })
-  const [message, setMessage] = useState('')
-
-  const handleToggle = (field) => {
-    setPrivacy(prev => ({ ...prev, [field]: !prev[field] }))
-  }
 
   const handleSave = async () => {
     setLoading(true)
     try {
       await api.patch('/auth/privacy/', privacy)
-      setMessage('Paramètres de confidentialité mis à jour')
-      setTimeout(() => setMessage(''), 3000)
-    } catch (err) {
-      console.error(err)
-      setMessage('Erreur lors de la mise à jour')
+      setMessage('Parametres de confidentialite mis a jour.')
+    } catch {
+      setMessage('Erreur lors de la mise a jour.')
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="max-w-2xl mx-auto px-4">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 hover:bg-gray-200 rounded-lg transition"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900">Paramètres de confidentialité</h1>
+    <SettingsSectionShell
+      title="Confidentialite"
+      description="Controlez la visibilite de votre profil et la facon dont les autres utilisateurs interagissent avec vous."
+      showHeading={showHeading}
+    >
+      {message ? (
+        <div className={`rounded-2xl px-4 py-3 text-sm font-semibold ${message.startsWith('Erreur') ? 'bg-red-50 text-red-700' : 'bg-emerald-50 text-emerald-700'}`}>
+          {message}
         </div>
+      ) : null}
 
-        {/* Settings */}
-        <div className="bg-white rounded-lg shadow p-6 space-y-6">
-          {message && (
-            <div className={`p-3 rounded-lg ${message.includes('Erreur') ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'}`}>
-              {message}
-            </div>
-          )}
-
-          {/* Profile Visibility */}
-          <div className="border-b pb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-gray-900">Profil public</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Permettre aux autres utilisateurs de voir votre profil
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={privacy.profile_public}
-                  onChange={() => handleToggle('profile_public')}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600" />
-              </label>
-            </div>
-          </div>
-
-          {/* Email Visibility */}
-          <div className="border-b pb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-gray-900">Afficher mon email</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Rendre votre email visible sur votre profil
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={privacy.show_email}
-                  onChange={() => handleToggle('show_email')}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600" />
-              </label>
-            </div>
-          </div>
-
-          {/* Messaging */}
-          <div className="border-b pb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-gray-900">Autoriser la messagerie</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Permettre à d'autres utilisateurs de vous envoyer des messages
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={privacy.allow_messaging}
-                  onChange={() => handleToggle('allow_messaging')}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600" />
-              </label>
-            </div>
-          </div>
-
-          {/* Follow Requests */}
-          <div className="pb-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-gray-900">Approuver les demandes de suivi</h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Approuver manuellement les demandes d'abonnement
-                </p>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={privacy.allow_follow_requests}
-                  onChange={() => handleToggle('allow_follow_requests')}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600" />
-              </label>
-            </div>
-          </div>
-
-          {/* Save Button */}
-          <div className="flex gap-3 pt-4">
-            <button
-              onClick={handleSave}
-              disabled={loading}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition disabled:opacity-50"
-            >
-              {loading ? 'Enregistrement...' : 'Enregistrer'}
-            </button>
-            <button
-              onClick={() => navigate(-1)}
-              className="flex-1 border border-gray-300 hover:bg-gray-50 text-gray-700 font-bold py-2 px-4 rounded-lg transition"
-            >
-              Annuler
-            </button>
-          </div>
-        </div>
+      <div className="space-y-4">
+        <ToggleRow
+          title="Profil public"
+          description="Permettre aux autres utilisateurs de consulter votre profil."
+          checked={privacy.profile_public}
+          onChange={() => setPrivacy((current) => ({ ...current, profile_public: !current.profile_public }))}
+        />
+        <ToggleRow
+          title="Afficher mon email"
+          description="Afficher votre adresse email sur votre profil public."
+          checked={privacy.show_email}
+          onChange={() => setPrivacy((current) => ({ ...current, show_email: !current.show_email }))}
+        />
+        <ToggleRow
+          title="Autoriser la messagerie"
+          description="Permettre a d'autres utilisateurs de vous envoyer des messages."
+          checked={privacy.allow_messaging}
+          onChange={() => setPrivacy((current) => ({ ...current, allow_messaging: !current.allow_messaging }))}
+        />
+        <ToggleRow
+          title="Approuver les demandes de suivi"
+          description="Demander une validation manuelle avant qu'un utilisateur puisse vous suivre."
+          checked={privacy.allow_follow_requests}
+          onChange={() => setPrivacy((current) => ({ ...current, allow_follow_requests: !current.allow_follow_requests }))}
+        />
       </div>
-    </div>
+
+      <div className="max-w-md">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={loading}
+          className="w-full rounded-2xl bg-emerald-600 px-4 py-3 font-bold text-white transition hover:bg-emerald-700 disabled:bg-slate-300"
+        >
+          {loading ? 'Enregistrement...' : 'Enregistrer les preferences'}
+        </button>
+      </div>
+    </SettingsSectionShell>
   )
 }

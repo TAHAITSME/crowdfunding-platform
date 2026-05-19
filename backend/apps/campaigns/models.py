@@ -6,6 +6,18 @@ from apps.associations.models import Association
 
 
 class Campaign(models.Model):
+    STATUS_PENDING = 'pending'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    STATUS_SUSPENDED = 'suspended'
+
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'En attente'),
+        (STATUS_APPROVED, 'Approuvee'),
+        (STATUS_REJECTED, 'Rejetee'),
+        (STATUS_SUSPENDED, 'Suspendue'),
+    ]
+
     HEALTH       = 'health'
     EDUCATION    = 'education'
     ENVIRONMENT  = 'environment'
@@ -29,6 +41,7 @@ class Campaign(models.Model):
     category        = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
     deadline        = models.DateTimeField()
     image           = models.ImageField(upload_to='campaigns/', blank=True, null=True)
+    status          = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     is_active       = models.BooleanField(default=True)
     created_at      = models.DateTimeField(auto_now_add=True)
     updated_at      = models.DateTimeField(auto_now=True)

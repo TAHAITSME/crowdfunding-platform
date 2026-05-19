@@ -8,12 +8,12 @@ import { fetchCampaigns } from '../../features/campaigns/campaignSlice'
 export default function TrendingCampaigns() {
   const dispatch  = useDispatch()
   const navigate  = useNavigate()
-  const { campaigns, loading } = useSelector(s => s.campaigns)
+  const { list, loading } = useSelector(s => s.campaigns)
 
   useEffect(() => { dispatch(fetchCampaigns()) }, [dispatch])
 
   // Top 3 campagnes par montant collecté
-  const top3 = [...(campaigns || [])]
+  const top3 = [...(Array.isArray(list) ? list : [])]
     .sort((a, b) => b.current_amount - a.current_amount)
     .slice(0, 3)
 

@@ -1,41 +1,65 @@
-// src/context/AuthContext.jsx
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import api from '../services/api'
 
 const AuthContext = createContext()
+const AUTH_EVENT = 'ydiFyedk-auth-change'
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
 
-  // Au démarrage, si un token existe → charge le profil
   useEffect(() => {
-    const token = localStorage.getItem('access_token')
-    if (token) {
-      api.get('/auth/me/')
-        .then(res => setUser(res.data))
-        .catch(() => {
-          localStorage.clear()
+    let mounted = true
+
+    const syncUser = () => {
+      const token = localStorage.getItem('access_token')
+      if (!token) {
+        if (mounted) {
           setUser(null)
+          setLoading(false)
+        }
+        return
+      }
+
+      api.get('/auth/me/')
+        .then((res) => {
+          if (mounted) setUser(res.data)
         })
-        .finally(() => setLoading(false))
-    } else {
-      // No token, user stays null
+        .catch(() => {
+          localStorage.removeItem('access_token')
+          localStorage.removeItem('refresh_token')
+          if (mounted) setUser(null)
+        })
+        .finally(() => {
+          if (mounted) setLoading(false)
+        })
+    }
+
+    syncUser()
+    window.addEventListener('storage', syncUser)
+    window.addEventListener(AUTH_EVENT, syncUser)
+
+    return () => {
+      mounted = false
+      window.removeEventListener('storage', syncUser)
+      window.removeEventListener(AUTH_EVENT, syncUser)
     }
   }, [])
 
-  const login = async (username, password) => {
-    const res = await api.post('/auth/login/', { username, password })
+  const login = async (email, password) => {
+    const res = await api.post('/auth/login/', { email, password })
     localStorage.setItem('access_token', res.data.access)
     localStorage.setItem('refresh_token', res.data.refresh)
     const me = await api.get('/auth/me/')
     setUser(me.data)
+    window.dispatchEvent(new Event(AUTH_EVENT))
   }
 
   const logout = () => {
-    localStorage.clear()
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
     setUser(null)
-    window.location.href = '/login'
+    window.dispatchEvent(new Event(AUTH_EVENT))
   }
 
   return (

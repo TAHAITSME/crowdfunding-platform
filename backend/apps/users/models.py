@@ -19,9 +19,9 @@ class User(AbstractUser):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     email = models.EmailField(unique=True)
     phone = models.CharField(max_length=20, blank=True)
-    cin = models.CharField(max_length=20, blank=True, unique=True)  # ← unique ajouté
-    full_name = models.CharField(max_length=150, blank=True)         # ← nouveau
-    document = models.FileField(upload_to='associations/documents/', blank=True, null=True)  # ← nouveau
+    cin = models.CharField(max_length=20, blank=True, null=True, unique=True)
+    full_name = models.CharField(max_length=150, blank=True)
+    document = models.FileField(upload_to='associations/documents/', blank=True, null=True)
 
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default=ROLE_USER)
     is_verified = models.BooleanField(default=False)
@@ -35,8 +35,6 @@ class User(AbstractUser):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
-    # ...reste inchangé
-
 
     class Meta:
         db_table = 'users'
@@ -63,7 +61,7 @@ class Profile(models.Model):
 
     PRIVACY_CHOICES = [
         (PUBLIC, 'Public'),
-        (PRIVATE, 'Privé'),
+        (PRIVATE, 'Prive'),
     ]
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

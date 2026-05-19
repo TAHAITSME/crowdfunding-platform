@@ -1,214 +1,283 @@
-import { useEffect, useState } from 'react'
-import { useDispatch, useSelector } from 'react-redux'
-import { Link } from 'react-router-dom'
-import { fetchSuggestions, followUser, fetchFollowers, fetchFollowing } from '../features/follow/followSlice'
+import { useEffect, useMemo, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import MainLayout from '../components/layouts/MainLayout'
-import { Users, UserCheck, UserPlus, Search } from 'lucide-react'
+import api from '../services/api'
+import { resolveMediaUrl } from '../utils/backend'
+import {
+  Check,
+  MessageCircle,
+  Search,
+  Trash2,
+  UserPlus,
+  Users,
+  X,
+} from 'lucide-react'
 
-export default function AmisPage() {
-  const dispatch = useDispatch()
-  const { suggestions, followers, following, followingStatus, loading } = useSelector(s => s.follow)
-  const [tab, setTab] = useState('suggestions') // suggestions | followers | following
-  const [search, setSearch] = useState('')
-  const { user } = useSelector(s => s.auth)
+function avatarUrl(user) {
+  return resolveMediaUrl(user?.avatar)
+}
 
-  useEffect(() => {
-    dispatch(fetchSuggestions())
-    if (user?.id) {
-      dispatch(fetchFollowers(user.id))
-      dispatch(fetchFollowing(user.id))
-    }
-  }, [dispatch, user])
+function Avatar({ user }) {
+  const name = user?.full_name || user?.username || '?'
+  const src = avatarUrl(user)
 
-  const handleFollow = async (userId) => {
-    await dispatch(followUser(userId))
-    dispatch(fetchSuggestions())
-    if (user?.id) dispatch(fetchFollowing(user.id))
+  if (src) {
+    return <img src={src} alt={name} className="w-11 h-11 rounded-full object-cover ring-2 ring-white shrink-0" />
   }
 
-  // Filtrer par recherche
-  const filterBySearch = (list, getUsername) =>
-    list.filter(item => getUsername(item).toLowerCase().includes(search.toLowerCase()))
+  return (
+    <div className="w-11 h-11 rounded-full bg-emerald-500 text-white font-bold flex items-center justify-center ring-2 ring-white shrink-0">
+      {name.charAt(0).toUpperCase()}
+    </div>
+  )
+}
 
-  const filteredSuggestions = filterBySearch(suggestions, u => u.username)
-  const filteredFollowers   = filterBySearch(followers,   f => f.follower?.username || '')
-  const filteredFollowing   = filterBySearch(following,   f => f.following?.username || '')
+function UserLine({ user, children }) {
+  if (!user) return null
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
+      <Link to={`/profile/${user.id}`}>
+        <Avatar user={user} />
+      </Link>
+      <div className="min-w-0 flex-1">
+        <Link to={`/profile/${user.id}`} className="block truncate text-sm font-bold text-slate-900 hover:text-emerald-600">
+          {user.full_name || user.username}
+        </Link>
+        <p className="truncate text-xs text-slate-400">@{user.username}</p>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">{children}</div>
+    </div>
+  )
+}
+
+function IconButton({ title, onClick, children, tone = 'slate', disabled = false }) {
+  const tones = {
+    emerald: 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100',
+    red: 'bg-red-50 text-red-600 hover:bg-red-100',
+    slate: 'bg-slate-50 text-slate-600 hover:bg-slate-100',
+  }
+
+  return (
+    <button
+      type="button"
+      title={title}
+      aria-label={title}
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex h-9 w-9 items-center justify-center rounded-xl transition disabled:cursor-not-allowed disabled:opacity-50 ${tones[tone]}`}
+    >
+      {children}
+    </button>
+  )
+}
+
+export default function AmisPage() {
+  const navigate = useNavigate()
+  const [friends, setFriends] = useState([])
+  const [incoming, setIncoming] = useState([])
+  const [outgoing, setOutgoing] = useState([])
+  const [results, setResults] = useState([])
+  const [tab, setTab] = useState('friends')
+  const [query, setQuery] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [busy, setBusy] = useState({})
+  const [error, setError] = useState('')
+
+  const loadAll = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      const [friendsRes, incomingRes, outgoingRes] = await Promise.all([
+        api.get('/friends/'),
+        api.get('/friends/requests/?direction=incoming'),
+        api.get('/friends/requests/?direction=outgoing'),
+      ])
+      setFriends(friendsRes.data)
+      setIncoming(incomingRes.data)
+      setOutgoing(outgoingRes.data)
+    } catch {
+      setError("Impossible de charger vos amis.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadAll()
+  }, [])
+
+  useEffect(() => {
+    const trimmed = query.trim()
+    if (trimmed.length < 2) {
+      setResults([])
+      return
+    }
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const res = await api.get(`/search/?q=${encodeURIComponent(trimmed)}`)
+        setResults(res.data.users || [])
+      } catch {
+        setResults([])
+      }
+    }, 250)
+
+    return () => window.clearTimeout(timer)
+  }, [query])
+
+  const run = async (key, fn) => {
+    setBusy((prev) => ({ ...prev, [key]: true }))
+    setError('')
+    try {
+      await fn()
+      await loadAll()
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.detail || 'Action impossible.')
+    } finally {
+      setBusy((prev) => ({ ...prev, [key]: false }))
+    }
+  }
+
+  const sendRequest = (userId) =>
+    run(`send-${userId}`, async () => api.post('/friends/request/', { user_id: userId }))
+
+  const acceptRequest = (id) =>
+    run(`accept-${id}`, async () => api.post(`/friends/requests/${id}/accept/`))
+
+  const rejectRequest = (id) =>
+    run(`reject-${id}`, async () => api.post(`/friends/requests/${id}/reject/`))
+
+  const removeFriend = (id) =>
+    run(`remove-${id}`, async () => api.delete(`/friends/${id}/`))
+
+  const startConversation = async (userId) => {
+    const res = await api.post('/messaging/start/', { user_id: userId })
+    navigate('/messages', { state: { conv: res.data } })
+  }
+
+  const existingUserIds = useMemo(() => {
+    const ids = new Set()
+    friends.forEach((item) => ids.add(String(item.friend?.id)))
+    incoming.forEach((item) => ids.add(String(item.requester?.id)))
+    outgoing.forEach((item) => ids.add(String(item.addressee?.id)))
+    return ids
+  }, [friends, incoming, outgoing])
+
+  const searchResults = results.filter((user) => !existingUserIds.has(String(user.id)))
 
   const tabs = [
-    { key: 'suggestions', label: 'Suggestions', icon: UserPlus,  count: suggestions.length },
-    { key: 'followers',   label: 'Abonnés',     icon: Users,     count: followers.length },
-    { key: 'following',   label: 'Abonnements', icon: UserCheck, count: following.length },
+    { key: 'friends', label: 'Amis', count: friends.length },
+    { key: 'incoming', label: 'Demandes', count: incoming.length },
+    { key: 'outgoing', label: 'Envoyees', count: outgoing.length },
+    { key: 'search', label: 'Rechercher', count: searchResults.length },
   ]
 
   return (
-    <MainLayout>
-      <div className="max-w-3xl mx-auto px-4 py-8">
-
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-black text-gray-900">Communauté</h1>
-          <p className="text-sm text-gray-400 mt-1">Découvrez et suivez des membres de YedFyed</p>
+    <MainLayout fullWidth>
+      <div className="min-h-full bg-slate-50 px-6 py-6">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-widest text-emerald-500">Reseau</p>
+            <h1 className="text-2xl font-extrabold text-slate-900">Amis</h1>
+            <p className="text-sm text-slate-500">Gerez vos demandes et demarrez des conversations privees.</p>
+          </div>
+          <div className="relative w-full max-w-sm">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value)
+                setTab('search')
+              }}
+              placeholder="Rechercher un utilisateur..."
+              className="w-full rounded-xl border border-slate-200 bg-white py-2.5 pl-10 pr-3 text-sm outline-none transition focus:border-emerald-300 focus:ring-4 focus:ring-emerald-100"
+            />
+          </div>
         </div>
 
-        {/* Barre de recherche */}
-        <div className="relative mb-6">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Rechercher un membre..."
-            className="w-full pl-11 pr-4 py-3 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-green-400 text-sm shadow-sm"
-          />
-        </div>
-
-        {/* Tabs */}
-        <div className="flex gap-2 mb-6 bg-gray-100 p-1 rounded-2xl">
-          {tabs.map(({ key, label, icon: Icon, count }) => (
+        <div className="mb-5 grid grid-cols-2 gap-2 md:grid-cols-4">
+          {tabs.map((item) => (
             <button
-              key={key}
-              onClick={() => setTab(key)}
-              className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-bold transition ${
-                tab === key
-                  ? 'bg-white text-green-700 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
+              key={item.key}
+              type="button"
+              onClick={() => setTab(item.key)}
+              className={`flex items-center justify-between rounded-xl border px-4 py-3 text-sm font-bold transition ${
+                tab === item.key
+                  ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                  : 'border-slate-100 bg-white text-slate-600 hover:bg-slate-50'
               }`}
             >
-              <Icon className="w-4 h-4" />
-              {label}
-              <span className={`text-xs px-1.5 py-0.5 rounded-full font-bold ${
-                tab === key ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'
-              }`}>
-                {count}
-              </span>
+              <span>{item.label}</span>
+              <span className="rounded-lg bg-white px-2 py-0.5 text-xs">{item.count}</span>
             </button>
           ))}
         </div>
 
-        {/* ── SUGGESTIONS ── */}
-        {tab === 'suggestions' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {loading && filteredSuggestions.length === 0 && (
-              <p className="col-span-2 text-center text-gray-400 py-12">Chargement...</p>
-            )}
-            {!loading && filteredSuggestions.length === 0 && (
-              <p className="col-span-2 text-center text-gray-400 py-12">
-                {search ? 'Aucun résultat pour cette recherche' : 'Aucune suggestion disponible'}
-              </p>
-            )}
-            {filteredSuggestions.map(u => (
-              <UserCard
-                key={u.id}
-                id={u.id}
-                username={u.username}
-                avatar={u.avatar}
-                role={u.role}
-                isFollowing={followingStatus[u.id]}
-                onFollow={() => handleFollow(u.id)}
-                loading={loading}
-              />
-            ))}
+        {error && (
+          <div className="mb-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-600">
+            {error}
           </div>
         )}
 
-        {/* ── ABONNÉS ── */}
-        {tab === 'followers' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {filteredFollowers.length === 0 && (
-              <p className="col-span-2 text-center text-gray-400 py-12">
-                {search ? 'Aucun résultat' : 'Aucun abonné pour l\'instant'}
-              </p>
-            )}
-            {filteredFollowers.map(f => (
-              <UserCard
-                key={f.follower?.id}
-                id={f.follower?.id}
-                username={f.follower?.username}
-                avatar={f.follower?.avatar}
-                role={f.follower?.role}
-                isFollowing={followingStatus[f.follower?.id]}
-                onFollow={() => handleFollow(f.follower?.id)}
-                loading={loading}
-              />
+        {loading ? (
+          <div className="rounded-xl border border-slate-100 bg-white p-8 text-center text-sm text-slate-400">
+            Chargement...
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2 xl:grid-cols-3">
+            {tab === 'friends' && friends.map((item) => (
+              <UserLine key={item.id} user={item.friend}>
+                <IconButton title="Message" tone="emerald" onClick={() => startConversation(item.friend.id)}>
+                  <MessageCircle className="h-4 w-4" />
+                </IconButton>
+                <IconButton title="Supprimer" tone="red" onClick={() => removeFriend(item.id)} disabled={busy[`remove-${item.id}`]}>
+                  <Trash2 className="h-4 w-4" />
+                </IconButton>
+              </UserLine>
             ))}
+
+            {tab === 'incoming' && incoming.map((item) => (
+              <UserLine key={item.id} user={item.requester}>
+                <IconButton title="Accepter" tone="emerald" onClick={() => acceptRequest(item.id)} disabled={busy[`accept-${item.id}`]}>
+                  <Check className="h-4 w-4" />
+                </IconButton>
+                <IconButton title="Refuser" tone="red" onClick={() => rejectRequest(item.id)} disabled={busy[`reject-${item.id}`]}>
+                  <X className="h-4 w-4" />
+                </IconButton>
+              </UserLine>
+            ))}
+
+            {tab === 'outgoing' && outgoing.map((item) => (
+              <UserLine key={item.id} user={item.addressee}>
+                <span className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700">En attente</span>
+              </UserLine>
+            ))}
+
+            {tab === 'search' && searchResults.map((user) => (
+              <UserLine key={user.id} user={user}>
+                <IconButton title="Ajouter" tone="emerald" onClick={() => sendRequest(user.id)} disabled={busy[`send-${user.id}`]}>
+                  <UserPlus className="h-4 w-4" />
+                </IconButton>
+              </UserLine>
+            ))}
+
+            {tab === 'friends' && friends.length === 0 && <Empty label="Aucun ami pour le moment." />}
+            {tab === 'incoming' && incoming.length === 0 && <Empty label="Aucune demande recue." />}
+            {tab === 'outgoing' && outgoing.length === 0 && <Empty label="Aucune demande envoyee." />}
+            {tab === 'search' && query.trim().length < 2 && <Empty label="Tapez au moins 2 caracteres pour rechercher." />}
+            {tab === 'search' && query.trim().length >= 2 && searchResults.length === 0 && <Empty label="Aucun nouvel utilisateur trouve." />}
           </div>
         )}
-
-        {/* ── ABONNEMENTS ── */}
-        {tab === 'following' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {filteredFollowing.length === 0 && (
-              <p className="col-span-2 text-center text-gray-400 py-12">
-                {search ? 'Aucun résultat' : 'Vous ne suivez personne pour l\'instant'}
-              </p>
-            )}
-            {filteredFollowing.map(f => (
-              <UserCard
-                key={f.following?.id}
-                id={f.following?.id}
-                username={f.following?.username}
-                avatar={f.following?.avatar}
-                role={f.following?.role}
-                isFollowing={followingStatus[f.following?.id] ?? true}
-                onFollow={() => handleFollow(f.following?.id)}
-                loading={loading}
-              />
-            ))}
-          </div>
-        )}
-
       </div>
     </MainLayout>
   )
 }
 
-// ── Composant carte utilisateur ──
-function UserCard({ id, username, avatar, role, isFollowing, onFollow, loading }) {
-  if (!id || !username) return null
-
+function Empty({ label }) {
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4 hover:shadow-md transition">
-
-      {/* Avatar */}
-      <Link to={`/profile/${id}`} className="shrink-0">
-        <div className="w-14 h-14 rounded-2xl bg-green-100 overflow-hidden flex items-center justify-center hover:ring-2 hover:ring-green-400 transition">
-          {avatar ? (
-            <img src={avatar} alt={username} className="w-full h-full object-cover" />
-          ) : (
-            <span className="text-green-700 font-black text-xl">
-              {username?.[0]?.toUpperCase()}
-            </span>
-          )}
-        </div>
-      </Link>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <Link to={`/profile/${id}`}>
-          <p className="font-bold text-gray-900 hover:text-green-600 transition truncate">{username}</p>
-        </Link>
-        <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mt-1 ${
-          role === 'association'
-            ? 'bg-emerald-100 text-emerald-700'
-            : 'bg-gray-100 text-gray-500'
-        }`}>
-          {role === 'association' ? '🏢 Association' : '👤 Membre'}
-        </span>
-      </div>
-
-      {/* Bouton */}
-      <button
-        onClick={onFollow}
-        disabled={loading}
-        className={`shrink-0 text-xs font-bold px-4 py-2 rounded-xl transition ${
-          isFollowing
-            ? 'bg-gray-100 text-gray-500 hover:bg-red-50 hover:text-red-500'
-            : 'bg-green-500 text-white hover:bg-green-600'
-        }`}
-      >
-        {isFollowing ? 'Abonné ✓' : '+ Suivre'}
-      </button>
-
+    <div className="col-span-full flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-white px-6 py-12 text-center">
+      <Users className="mb-3 h-8 w-8 text-slate-300" />
+      <p className="text-sm font-semibold text-slate-500">{label}</p>
     </div>
   )
 }

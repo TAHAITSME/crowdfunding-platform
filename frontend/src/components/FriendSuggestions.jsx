@@ -1,48 +1,79 @@
 import { useEffect, useState } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { Link } from 'react-router-dom'
-import { fetchSuggestions, followUser } from '../../features/follow/followSlice'
-import { Users, RefreshCw, ChevronRight, UserPlus } from 'lucide-react'
+import {
+  fetchSuggestions,
+  toggleFollow,
+  dismissSuggestion,
+} from '../features/follow/followSlice'
+import { Sparkles, RefreshCw, ChevronRight, UserPlus, X, Users } from 'lucide-react'
 
-// ── Avatar ──
-function UserAvatar({ user, size = 'md' }) {
-  const sizes  = { sm: 'w-8 h-8 text-xs', md: 'w-11 h-11 text-sm', lg: 'w-14 h-14 text-base' }
-  const colors = ['bg-green-500','bg-blue-500','bg-purple-500','bg-orange-500','bg-pink-500']
-  const color  = colors[(user?.username || '').charCodeAt(0) % colors.length]
-  const src    = user?.avatar || user?.profile?.avatar || null
-  const name   = user?.full_name || user?.username || '?'
+function MiniAvatar({ user }) {
+  const colors = ['bg-emerald-500', 'bg-sky-500', 'bg-violet-500', 'bg-amber-500', 'bg-pink-500']
+  const color = colors[(user?.username || '').charCodeAt(0) % colors.length]
+  const name = user?.full_name || user?.username || '?'
 
-  if (src) return (
-    <img src={src} alt={name}
-      className={`${sizes[size]} rounded-full object-cover ring-2 ring-white shadow-sm shrink-0`} />
-  )
+  if (user?.avatar) {
+    return (
+      <img
+        src={user.avatar}
+        alt={name}
+        className="h-14 w-14 shrink-0 rounded-full object-cover ring-2 ring-white shadow-[0_10px_24px_rgba(15,23,42,0.10)]"
+      />
+    )
+  }
+
   return (
-    <div className={`${sizes[size]} rounded-full ${color} text-white font-black flex items-center justify-center ring-2 ring-white shadow-sm shrink-0`}>
+    <div
+      className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-full ${color} text-xl font-bold text-white ring-2 ring-white shadow-[0_10px_24px_rgba(15,23,42,0.10)]`}
+    >
       {name.charAt(0).toUpperCase()}
     </div>
   )
 }
 
-// ── Badge rôle ──
-function RoleBadge({ role }) {
-  const roles = {
-    association: { emoji: '🏢', label: 'Association', cls: 'bg-blue-50 text-blue-600'   },
-    student:     { emoji: '🎓', label: 'Étudiant',    cls: 'bg-purple-50 text-purple-600'},
-    default:     { emoji: '👤', label: 'Membre',      cls: 'bg-gray-100 text-gray-500'   },
-  }
-  const cfg = roles[role] || roles.default
+function MiniSkeletonCard() {
   return (
-    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.cls}`}>
-      {cfg.emoji} {cfg.label}
-    </span>
+    <div className="flex animate-pulse items-center gap-4 px-6 py-4">
+      <div className="h-14 w-14 shrink-0 rounded-full bg-slate-100" />
+      <div className="flex-1 space-y-2.5">
+        <div className="h-3 w-24 rounded-full bg-slate-200" />
+        <div className="h-2 w-16 rounded-full bg-slate-100" />
+      </div>
+      <div className="h-10 w-10 shrink-0 rounded-full bg-slate-100" />
+    </div>
+  )
+}
+
+function MutualFriendsPreview({ friends }) {
+  if (!Array.isArray(friends) || friends.length === 0) return null
+
+  return (
+    <div className="mt-2 flex items-center gap-2">
+      <div className="flex -space-x-2">
+        {friends.slice(0, 3).map((friend) => (
+          <div key={friend.id} className="h-6 w-6 overflow-hidden rounded-full ring-2 ring-white">
+            {friend.avatar ? (
+              <img src={friend.avatar} alt={friend.full_name || friend.username} className="h-full w-full object-cover" />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-emerald-100 text-[10px] font-bold text-emerald-700">
+                {(friend.full_name || friend.username || '?').charAt(0).toUpperCase()}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      <span className="truncate text-[11px] text-slate-400">
+        {friends.map((friend) => friend.full_name || friend.username).join(', ')}
+      </span>
+    </div>
   )
 }
 
 export default function FriendSuggestions() {
   const dispatch = useDispatch()
-  const { suggestions, loading, followingStatus } = useSelector((s) => s.follow)
+  const { suggestions, suggestionsLoading, followLoading } = useSelector((s) => s.follow)
   const [refreshing, setRefreshing] = useState(false)
-  const [followed, setFollowed]     = useState({})   // track local pour animation
 
   useEffect(() => {
     dispatch(fetchSuggestions())
@@ -54,124 +85,116 @@ export default function FriendSuggestions() {
     setRefreshing(false)
   }
 
-  const handleFollow = async (userId) => {
-    setFollowed((prev) => ({ ...prev, [userId]: true }))
-    await dispatch(followUser(userId))
-    // retire la suggestion après 800ms (UX smooth)
-    setTimeout(() => dispatch(fetchSuggestions()), 800)
-  }
+  const handleFollow = (userId) => dispatch(toggleFollow(userId))
+  const handleDismiss = (userId) => dispatch(dismissSuggestion(userId))
 
-  // ── Loading skeleton ──
-  if (loading && suggestions.length === 0) {
+  if (suggestionsLoading && suggestions.length === 0) {
     return (
-      <div className="rounded-2xl bg-white border border-gray-100 shadow-sm p-4">
-        <div className="flex items-center gap-2 mb-4">
-          <div className="w-4 h-4 bg-gray-200 rounded animate-pulse" />
-          <div className="w-24 h-4 bg-gray-200 rounded animate-pulse" />
+      <div className="w-full overflow-hidden rounded-[32px] border border-slate-200 bg-white/90 shadow-[0_12px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+        <div className="flex items-center gap-4 border-b border-slate-100 px-7 pb-5 pt-7">
+          <div className="h-10 w-10 animate-pulse rounded-[14px] bg-slate-100" />
+          <div className="h-4 w-28 animate-pulse rounded-full bg-slate-200" />
         </div>
         {[1, 2, 3].map((i) => (
-          <div key={i} className="flex items-center gap-3 mb-3">
-            <div className="w-11 h-11 rounded-full bg-gray-200 animate-pulse shrink-0" />
-            <div className="flex-1 space-y-1.5">
-              <div className="w-28 h-3.5 bg-gray-200 rounded animate-pulse" />
-              <div className="w-16 h-2.5 bg-gray-100 rounded animate-pulse" />
-            </div>
-            <div className="w-16 h-7 bg-gray-200 rounded-full animate-pulse" />
-          </div>
+          <MiniSkeletonCard key={i} />
         ))}
       </div>
     )
   }
 
-  if (suggestions.length === 0) return null
+  if (!suggestionsLoading && suggestions.length === 0) return null
 
   return (
-    <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
-
-      {/* ── Header ── */}
-      <div className="flex items-center justify-between px-4 pt-4 pb-3">
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-green-100 rounded-lg flex items-center justify-center">
-            <Users className="w-4 h-4 text-green-600" />
+    <div className="w-full overflow-hidden rounded-[32px] border border-slate-200 bg-white/90 shadow-[0_12px_40px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+      <div className="flex items-center justify-between border-b border-slate-100 px-7 pb-5 pt-7">
+        <div className="flex items-center gap-3.5">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[16px] bg-gradient-to-br from-emerald-100 to-emerald-50 shadow-inner">
+            <Sparkles className="h-5 w-5 text-emerald-600" />
           </div>
-          <h3 className="text-sm font-black text-gray-800">Suggestions</h3>
-          <span className="text-xs bg-green-100 text-green-600 font-bold px-1.5 py-0.5 rounded-full">
-            {suggestions.length}
-          </span>
+          <h3 className="text-xl font-semibold tracking-tight text-slate-900">À découvrir</h3>
         </div>
 
-        {/* Bouton refresh */}
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-green-600 hover:bg-green-50 transition"
-          title="Actualiser"
+          title="Actualiser les suggestions"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl text-slate-400 transition-all hover:bg-emerald-50 hover:text-emerald-600 active:scale-95"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
         </button>
       </div>
 
-      {/* ── Liste ── */}
-      <div className="px-3 pb-3 space-y-1">
-        {suggestions.slice(0, 5).map((user) => {
-          const isFollowed = followed[user.id] || followingStatus?.[user.id]
+      <div className="divide-y divide-slate-100">
+        {suggestions.slice(0, 4).map((user) => {
+          const isPending = followLoading[user.id]
+
           return (
             <div
               key={user.id}
-              className={`flex items-center gap-3 p-2 rounded-xl transition-all ${
-                isFollowed ? 'opacity-60' : 'hover:bg-gray-50'
-              }`}
+              className="group relative flex items-center gap-4 px-6 py-5 transition-colors duration-200 hover:bg-slate-50/80"
             >
-              {/* Avatar */}
-              <Link to={`/profile/${user.id}`} className="shrink-0 hover:opacity-90 transition">
-                <UserAvatar user={user} size="md" />
+              <Link to={`/profile/${user.id}`} className="block shrink-0">
+                <MiniAvatar user={user} />
               </Link>
 
-              {/* Infos */}
-              <div className="flex-1 min-w-0">
-                <Link to={`/profile/${user.id}`}>
-                  <p className="text-sm font-bold text-gray-800 truncate hover:text-green-600 transition leading-tight">
+              <div className="flex min-w-0 flex-1 flex-col justify-center">
+                <Link to={`/profile/${user.id}`} className="block">
+                  <p className="mb-1 truncate text-base font-semibold tracking-tight text-slate-900 transition-colors hover:text-emerald-600">
                     {user.full_name || user.username}
                   </p>
                 </Link>
-                <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                  <RoleBadge role={user.role} />
-                  {user.mutual_friends > 0 && (
-                    <span className="text-[10px] text-gray-400">
-                      · {user.mutual_friends} ami{user.mutual_friends > 1 ? 's' : ''} en commun
-                    </span>
+
+                <div className="flex items-center gap-2 truncate text-[13px] font-medium text-slate-500">
+                  <span>{user.role === 'association' ? 'Association' : 'Membre'}</span>
+                  {Number(user.mutual_friends || 0) > 0 && (
+                    <>
+                      <span className="text-slate-300">•</span>
+                      <span className="flex items-center gap-1">
+                        <Users className="h-3.5 w-3.5" /> {user.mutual_friends} en commun
+                      </span>
+                    </>
                   )}
                 </div>
+
+                <MutualFriendsPreview friends={user.mutual_friends_preview} />
               </div>
 
-              {/* Bouton Follow */}
-              <button
-                onClick={() => !isFollowed && handleFollow(user.id)}
-                disabled={loading || isFollowed}
-                className={`shrink-0 flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full transition-all ${
-                  isFollowed
-                    ? 'bg-gray-100 text-gray-400 cursor-default'
-                    : 'bg-green-500 text-white hover:bg-green-600 shadow-sm shadow-green-200 active:scale-95'
-                }`}
-              >
-                {isFollowed
-                  ? '✓ Suivi'
-                  : <><UserPlus className="w-3 h-3" /> Suivre</>
-                }
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  onClick={() => handleFollow(user.id)}
+                  disabled={isPending}
+                  className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-50 text-slate-600 transition-all duration-300 hover:bg-emerald-500 hover:text-white hover:shadow-[0_10px_24px_rgba(16,185,129,0.25)] disabled:opacity-50"
+                  title="Suivre"
+                >
+                  {isPending ? (
+                    <span className="h-5 w-5 animate-spin rounded-full border-[2.5px] border-slate-400/30 border-t-slate-600" />
+                  ) : (
+                    <UserPlus className="h-5 w-5" />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => handleDismiss(user.id)}
+                  className="flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition-all duration-300 hover:bg-red-50 hover:text-red-600"
+                  title="Masquer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
             </div>
           )
         })}
       </div>
 
-      {/* ── Footer ── */}
-      <Link
-        to="/explore/people"
-        className="flex items-center justify-center gap-1.5 w-full py-3 text-sm font-bold text-green-600 hover:bg-green-50 transition border-t border-gray-100"
-      >
-        Voir plus de personnes
-        <ChevronRight className="w-4 h-4" />
-      </Link>
+      <div className="border-t border-slate-100 bg-white p-5">
+        <Link
+          to="/friends"
+          onClick={() => window.scrollTo(0, 0)}
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-slate-50 text-[15px] font-semibold text-slate-700 transition-all hover:bg-slate-100 hover:text-emerald-700 active:scale-[0.99]"
+        >
+          Parcourir la communauté <ChevronRight className="h-4 w-4 text-slate-400" />
+        </Link>
+      </div>
     </div>
   )
 }

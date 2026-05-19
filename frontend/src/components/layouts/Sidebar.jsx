@@ -1,102 +1,110 @@
-// src/components/layouts/Sidebar.jsx
-import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import {
-  Home, Compass, Target, MessageCircle,
-  Users, Bookmark, Bell, User, Settings,
+  Home,
+  Compass,
+  Target,
+  MessageCircle,
+  Users,
+  Bookmark,
+  Heart,
+  User,
+  Settings,
 } from 'lucide-react'
 
+const LINKS = [
+  { to: '/', icon: Home, label: 'Accueil' },
+  { to: '/explore', icon: Compass, label: 'Explorer' },
+  { to: '/campaigns', icon: Target, label: 'Campagnes' },
+  { to: '/messages', icon: MessageCircle, label: 'Messages' },
+  { to: '/friends', icon: Users, label: 'Amis' },
+  { to: '/saved', icon: Bookmark, label: 'Sauvegardes' },
+  { to: '/notifications', icon: Heart, label: 'Notifications', hasBadge: true },
+  { to: '/profile', icon: User, label: 'Profil' },
+  { to: '/settings', icon: Settings, label: 'Parametres' },
+]
+
+function SidebarLink({ to, icon: Icon, label, badge, mobile = false }) {
+  return (
+    <NavLink
+      to={to}
+      end={to === '/'}
+      className={({ isActive }) => mobile
+        ? `group flex min-w-[72px] shrink-0 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2 text-center transition ${
+          isActive
+            ? 'bg-emerald-500 text-white shadow-sm shadow-emerald-500/30'
+            : 'text-slate-500 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-[#111214] dark:hover:text-slate-100'
+        }`
+        : `group flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${
+          isActive
+            ? 'bg-emerald-50 font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300'
+            : 'text-slate-700 hover:bg-slate-100 hover:text-slate-950 dark:text-slate-200 dark:hover:bg-[#111214] dark:hover:text-white'
+        }`
+      }
+    >
+      {({ isActive }) => (
+        <>
+          <div className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${
+            mobile
+              ? 'bg-transparent'
+              : (isActive ? 'bg-emerald-500 text-white' : 'text-slate-700 dark:text-slate-200')
+          }`}>
+            <Icon className="h-5 w-5" />
+            {badge > 0 && (
+              <span className="absolute -right-1 -top-1 inline-flex min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-black text-white ring-2 ring-white dark:ring-black">
+                {badge > 99 ? '99+' : badge}
+              </span>
+            )}
+          </div>
+
+          {mobile ? (
+            <span className="truncate text-[11px] font-bold">{label}</span>
+          ) : (
+            <span className="truncate text-[15px]">{label}</span>
+          )}
+        </>
+      )}
+    </NavLink>
+  )
+}
+
 export default function Sidebar() {
-  const [expanded, setExpanded] = useState(false)
   const unreadCount = useSelector((s) => s.notifications?.unreadCount || 0)
 
-  const links = [
-    { to: '/',              icon: Home,          label: 'Accueil'       },
-    { to: '/explore',       icon: Compass,       label: 'Explorer'      },
-    { to: '/campaigns',     icon: Target,        label: 'Campagnes'     },
-    { to: '/messages',      icon: MessageCircle, label: 'Messages'      },
-    { to: '/friends',       icon: Users,         label: 'Amis'          },
-    { to: '/saved',         icon: Bookmark,      label: 'Sauvegardés'   },
-    { to: '/notifications', icon: Bell,          label: 'Notifications', badge: unreadCount },
-    { to: '/profile',       icon: User,          label: 'Profil'        },
-    { to: '/settings',      icon: Settings,      label: 'Paramètres'    },
-  ]
-
   return (
-    <aside
-      onMouseEnter={() => setExpanded(true)}
-      onMouseLeave={() => setExpanded(false)}
-      className={`
-        fixed left-0 top-16 h-[calc(100vh-64px)] z-40
-        bg-white border-r border-gray-100 shadow-sm
-        flex flex-col overflow-hidden
-        transition-all duration-300 ease-in-out
-        ${expanded ? 'w-64' : 'w-[80px]'}
-      `}
-    >
-      <nav className="flex-1 py-4 space-y-1 overflow-y-auto overflow-x-hidden px-2">
-        {links.map(({ to, icon: Icon, label, badge }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) => `
-              relative flex items-center gap-4 px-4 py-3.5 rounded-2xl
-              transition-all duration-150 group
-              ${isActive
-                ? 'bg-green-50 text-green-700 font-bold'
-                : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900'}
-            `}
-          >
-            {({ isActive }) => (
-              <>
-                {/* ── Icône grande ── */}
-                <div className="relative shrink-0">
-                  <Icon className={`w-6 h-6 ${isActive ? 'text-green-600' : ''}`} />
-                  {badge > 0 && (
-                    <span className="absolute -top-2 -right-2 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center px-1 ring-2 ring-white">
-                      {badge > 99 ? '99+' : badge}
-                    </span>
-                  )}
-                </div>
+    <>
+      <aside className="fixed left-0 top-16 z-30 hidden h-[calc(100vh-4rem)] w-[17rem] border-r border-slate-200 bg-white/96 backdrop-blur dark:border-slate-800 dark:bg-black/96 lg:flex lg:flex-col xl:w-[18rem]">
+        <div className="flex min-h-0 flex-1 flex-col">
+          <div className="px-4 pb-2 pt-5">
+            <p className="text-xs font-bold uppercase tracking-[0.22em] text-slate-400">
+              Navigation
+            </p>
+          </div>
 
-                {/* ── Label ── */}
-                <span className={`
-                  text-[15px] font-semibold whitespace-nowrap overflow-hidden
-                  transition-all duration-300
-                  ${expanded ? 'opacity-100 max-w-[180px]' : 'opacity-0 max-w-0'}
-                `}>
-                  {label}
-                </span>
+          <nav className="no-scrollbar min-h-0 flex-1 space-y-1 overflow-y-auto px-3 pb-5">
+            {LINKS.map((item) => (
+              <SidebarLink
+                key={item.to}
+                {...item}
+                badge={item.hasBadge ? unreadCount : 0}
+              />
+            ))}
+          </nav>
+        </div>
+      </aside>
 
-                {/* ── Tooltip sidebar réduite ── */}
-                {!expanded && (
-                  <div className="
-                    absolute left-full ml-4 px-3 py-2 bg-gray-900 text-white
-                    text-xs font-semibold rounded-xl whitespace-nowrap
-                    pointer-events-none opacity-0 group-hover:opacity-100
-                    transition-opacity duration-150 z-50 shadow-xl
-                  ">
-                    {label}
-                    {badge > 0 && (
-                      <span className="ml-2 bg-red-500 text-[10px] font-black px-1.5 py-0.5 rounded-full">
-                        {badge}
-                      </span>
-                    )}
-                    <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-900" />
-                  </div>
-                )}
-
-                {/* ── Barre active ── */}
-                {isActive && (
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-8 bg-green-500 rounded-r-full" />
-                )}
-              </>
-            )}
-          </NavLink>
-        ))}
-      </nav>
-    </aside>
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/96 px-2 pb-[calc(0.75rem+env(safe-area-inset-bottom))] pt-2 backdrop-blur dark:border-slate-800 dark:bg-[#090909]/96 lg:hidden">
+        <nav className="no-scrollbar flex gap-2 overflow-x-auto px-1">
+          {LINKS.map((item) => (
+            <SidebarLink
+              key={item.to}
+              {...item}
+              mobile
+              badge={item.hasBadge ? unreadCount : 0}
+            />
+          ))}
+        </nav>
+      </div>
+    </>
   )
 }

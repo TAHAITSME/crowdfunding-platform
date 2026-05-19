@@ -5,10 +5,13 @@ import { fetchProfile, fetchUserProfile, updateProfile, clearViewedUser } from '
 import { followUser, checkIsFollowing } from '../features/follow/followSlice'
 import { fetchPosts } from '../features/posts/postsSlice'
 import MainLayout from '../components/layouts/MainLayout'
+import PostCard from '../components/posts/PostCard'
 import api from '../services/api'
+import { resolveMediaUrl } from '../utils/backend'
 import {
   Camera, Edit2, Check, X, MapPin, Linkedin,
-  Globe, Users, Heart, Rss, BadgeInfo, Mail, UserCheck
+  Globe, Users, Heart, Rss, BadgeInfo, Mail, UserCheck,
+  UserPlus, UserX, Clock
 } from 'lucide-react'
 
 
@@ -32,6 +35,10 @@ export default function Profile() {
   const [coverPreview, setCoverPreview] = useState(null)
   const [coverFile, setCoverFile] = useState(null)
   const [saved, setSaved] = useState(false)
+  const [friendStatus, setFriendStatus] = useState({ status: 'none', friendship_id: null, direction: null })
+  const [friendLoading, setFriendLoading] = useState(false)
+  const [profileFriends, setProfileFriends] = useState([])
+  const [mutualFriends, setMutualFriends] = useState({ count: 0, users: [] })
 
   useEffect(() => {
     if (isOwnProfile) {
@@ -56,6 +63,29 @@ export default function Profile() {
       setSaved(false)
     }
   }, [profileData])
+
+  useEffect(() => {
+    if (!profileData?.id) return
+
+    api.get(`/users/${profileData.id}/friends/`)
+      .then((res) => setProfileFriends(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setProfileFriends([]))
+
+    if (!isOwnProfile) {
+      api.get(`/users/${profileData.id}/mutual-friends/`)
+        .then((res) => setMutualFriends({
+          count: Number(res.data?.count || 0),
+          users: Array.isArray(res.data?.users) ? res.data.users : [],
+        }))
+        .catch(() => setMutualFriends({ count: 0, users: [] }))
+
+      api.get(`/friends/status/${profileData.id}/`)
+        .then((res) => setFriendStatus(res.data))
+        .catch(() => setFriendStatus({ status: 'none', friendship_id: null, direction: null }))
+    } else {
+      setMutualFriends({ count: 0, users: [] })
+    }
+  }, [profileData?.id, isOwnProfile])
 
   const handleAvatarChange = (e) => {
     const f = e.target.files?.[0]
@@ -103,21 +133,58 @@ export default function Profile() {
     }
   }
 
+  const refreshFriendStatus = async () => {
+    if (!profileData?.id || isOwnProfile) return
+    const res = await api.get(`/friends/status/${profileData.id}/`)
+    setFriendStatus(res.data)
+  }
+
+  const sendFriendRequest = async () => {
+    setFriendLoading(true)
+    try {
+      await api.post('/friends/request/', { user_id: profileData.id })
+      await refreshFriendStatus()
+    } finally {
+      setFriendLoading(false)
+    }
+  }
+
+  const acceptFriendRequest = async () => {
+    if (!friendStatus.friendship_id) return
+    setFriendLoading(true)
+    try {
+      await api.post(`/friends/requests/${friendStatus.friendship_id}/accept/`)
+      await refreshFriendStatus()
+    } finally {
+      setFriendLoading(false)
+    }
+  }
+
+  const removeOrCancelFriendship = async () => {
+    if (!friendStatus.friendship_id) return
+    setFriendLoading(true)
+    try {
+      await api.delete(`/friends/${friendStatus.friendship_id}/`)
+      await refreshFriendStatus()
+    } finally {
+      setFriendLoading(false)
+    }
+  }
+
   const avatarUrl = useMemo(() => {
     if (avatarPreview) return avatarPreview
-    if (profileData?.avatar)
-      return profileData.avatar.startsWith('http') ? profileData.avatar : `http://localhost:8000${profileData.avatar}`
+    if (profileData?.avatar) return resolveMediaUrl(profileData.avatar)
     return null
   }, [avatarPreview, profileData?.avatar])
 
   const coverUrl = useMemo(() => {
     if (coverPreview) return coverPreview
-    if (profileData?.cover_image)
-      return profileData.cover_image.startsWith('http') ? profileData.cover_image : `http://localhost:8000${profileData.cover_image}`
+    if (profileData?.cover_image) return resolveMediaUrl(profileData.cover_image)
     return null
   }, [coverPreview, profileData?.cover_image])
 
-  const userPosts = posts.filter(p => p.author?.id === profileData?.id)
+  const userPosts = posts.filter((p) => p.author?.id === profileData?.id && !p.is_repost)
+  const userReposts = posts.filter((p) => p.author?.id === profileData?.id && p.is_repost)
 
   if (loading || !profileData) {
     return (
@@ -151,7 +218,7 @@ export default function Profile() {
     <MainLayout fullWidth>
 
       {/* ══ PAGE BG FACEBOOK-STYLE ══ */}
-      <div className="min-h-screen bg-gray-100 pb-10">
+      <div className="min-h-screen overflow-x-hidden bg-gray-100 pb-10">
 
         {/* ══ HEADER CARD : Cover + Avatar + Infos ══ */}
         <div className="bg-white shadow-sm">
@@ -172,10 +239,10 @@ export default function Profile() {
             {isOwnProfile && (
               <label
                 className={`
-                  absolute right-4 bottom-4 flex items-center gap-2
-                  bg-white/90 hover:bg-white px-4 py-2 rounded-lg
-                  text-sm font-semibold text-gray-700 cursor-pointer shadow
-                  transition-all duration-200
+                  absolute bottom-3 right-3 flex items-center gap-2
+                  rounded-lg bg-white/90 px-3 py-2
+                  text-xs font-semibold text-gray-700 shadow transition-all duration-200
+                  hover:bg-white sm:bottom-4 sm:right-4 sm:px-4 sm:text-sm
                   ${editing ? 'flex' : 'hidden group-hover:flex'}
                 `}
               >
@@ -187,18 +254,18 @@ export default function Profile() {
           </div>
 
           {/* ✅ Zone info centrée avec max-w-5xl comme Facebook */}
-          <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="mx-auto max-w-5xl px-4 sm:px-6">
 
             {/* Avatar + Nom + Actions */}
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 pb-3">
+            <div className="flex flex-col gap-4 pb-4 sm:flex-row sm:items-end sm:justify-between sm:pb-3">
 
               {/* Gauche : Avatar + Nom */}
-              <div className="flex flex-col sm:flex-row sm:items-end gap-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
 
                 {/* ✅ Avatar chevauche la cover : -mt-16 sm:-mt-20, border-4 border-white */}
                 <div className="relative -mt-16 sm:-mt-20 shrink-0 z-10">
                   <div className="
-                    w-32 h-32 sm:w-40 sm:h-40
+                    h-28 w-28 sm:h-40 sm:w-40
                     rounded-full overflow-hidden
                     border-4 border-white
                     shadow-xl
@@ -238,6 +305,26 @@ export default function Profile() {
                   {!editing && profileData.headline && (
                     <p className="text-sm text-gray-600 mt-1">{profileData.headline}</p>
                   )}
+                  {!isOwnProfile && mutualFriends.count > 0 && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <div className="flex -space-x-2">
+                        {mutualFriends.users.slice(0, 3).map((friend) => (
+                          <div key={friend.id} className="h-7 w-7 overflow-hidden rounded-full ring-2 ring-white">
+                            {friend.avatar ? (
+                              <img src={friend.avatar} alt={friend.full_name || friend.username} className="h-full w-full object-cover" />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-emerald-100 text-[11px] font-bold text-emerald-700">
+                                {(friend.full_name || friend.username || '?').charAt(0).toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                      <span className="text-xs font-semibold text-gray-500">
+                        {mutualFriends.count} ami{mutualFriends.count > 1 ? 's' : ''} en commun
+                      </span>
+                    </div>
+                  )}
                   {/* Stats inline */}
                   <div className="flex flex-wrap gap-5 mt-2">
                     {[
@@ -256,19 +343,19 @@ export default function Profile() {
               </div>
 
               {/* Droite : Boutons action */}
-              <div className="flex items-center gap-2 pb-3">
+              <div className="flex flex-wrap items-stretch gap-2 pb-3 sm:justify-end">
                 {isOwnProfile ? (
                   editing ? (
                     <>
                       <button
                         onClick={handleSave}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-bold transition shadow"
+                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-bold text-white shadow transition hover:bg-emerald-700 sm:w-auto"
                       >
                         <Check className="h-4 w-4" /> Enregistrer
                       </button>
                       <button
                         onClick={() => { setEditing(false); setAvatarPreview(null); setCoverPreview(null) }}
-                        className="flex items-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 sm:w-auto"
                       >
                         <X className="h-4 w-4" /> Annuler
                       </button>
@@ -277,13 +364,13 @@ export default function Profile() {
                     <>
                       <button
                         onClick={() => setEditing(true)}
-                        className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-lg text-sm font-bold transition shadow"
+                        className="flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-sm font-bold text-white shadow transition hover:bg-emerald-700 sm:w-auto"
                       >
                         <Edit2 className="h-4 w-4" /> Modifier le profil
                       </button>
                       <Link
                         to="/my-donations"
-                        className="flex items-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition"
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 sm:w-auto"
                       >
                         <Heart className="h-4 w-4 text-rose-400" /> Mes dons
                       </Link>
@@ -295,7 +382,7 @@ export default function Profile() {
                       onClick={handleFollow}
                       disabled={followLoading}
                       className={`
-                        flex items-center gap-2 px-5 py-2 rounded-lg text-sm font-bold shadow transition
+                        flex w-full items-center justify-center gap-2 rounded-lg px-5 py-2 text-sm font-bold shadow transition sm:w-auto
                         disabled:opacity-50
                         ${isFollowing
                           ? 'bg-gray-100 text-gray-600 hover:bg-red-50 hover:text-red-500 border border-gray-200'
@@ -305,9 +392,45 @@ export default function Profile() {
                       <UserCheck className="h-4 w-4" />
                       {followLoading ? '…' : isFollowing ? 'Abonné ✓' : '+ Suivre'}
                     </button>
+                    {friendStatus.status === 'none' && (
+                      <button
+                        onClick={sendFriendRequest}
+                        disabled={friendLoading}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50 sm:w-auto"
+                      >
+                        <UserPlus className="h-4 w-4" /> Ajouter
+                      </button>
+                    )}
+                    {friendStatus.status === 'pending' && friendStatus.direction === 'outgoing' && (
+                      <button
+                        onClick={removeOrCancelFriendship}
+                        disabled={friendLoading}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100 disabled:opacity-50 sm:w-auto"
+                      >
+                        <Clock className="h-4 w-4" /> Annuler
+                      </button>
+                    )}
+                    {friendStatus.status === 'pending' && friendStatus.direction === 'incoming' && (
+                      <button
+                        onClick={acceptFriendRequest}
+                        disabled={friendLoading}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 disabled:opacity-50 sm:w-auto"
+                      >
+                        <Check className="h-4 w-4" /> Accepter
+                      </button>
+                    )}
+                    {friendStatus.status === 'accepted' && (
+                      <button
+                        onClick={removeOrCancelFriendship}
+                        disabled={friendLoading}
+                        className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50 sm:w-auto"
+                      >
+                        <UserX className="h-4 w-4" /> Ami
+                      </button>
+                    )}
                     <button 
                       onClick={handleMessage}
-                      className="flex items-center gap-2 border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold transition">
+                      className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 sm:w-auto">
                       <Mail className="h-4 w-4" /> Message
                     </button>
                   </>
@@ -316,16 +439,19 @@ export default function Profile() {
             </div>
 
             {/* ══ ONGLETS — bord à bord dans le max-w-5xl ══ */}
-            <div className="flex border-t border-gray-100 gap-1 -mx-4 sm:-mx-6 px-4 sm:px-6">
+            <div className="-mx-4 overflow-x-auto border-t border-gray-100 px-4 no-scrollbar sm:-mx-6 sm:px-6">
+              <div className="flex min-w-max gap-1">
               {[
                 { key: 'posts', label: 'Publications' },
+                { key: 'reposts', label: 'Republications' },
                 { key: 'about', label: 'À propos'     },
+                { key: 'friends', label: `Amis (${profileFriends.length})` },
               ].map(({ key, label }) => (
                 <button
                   key={key}
                   onClick={() => setTab(key)}
                   className={`
-                    px-5 py-3.5 text-sm font-bold border-b-2 transition
+                    shrink-0 border-b-2 px-4 py-3.5 text-sm font-bold transition sm:px-5
                     ${tab === key
                       ? 'border-emerald-600 text-emerald-700'
                       : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'}
@@ -334,12 +460,13 @@ export default function Profile() {
                   {label}
                 </button>
               ))}
+              </div>
             </div>
           </div>
         </div>
 
         {/* ══ CONTENU DES ONGLETS — max-w-5xl centré ══ */}
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 mt-5">
+        <div className="mx-auto mt-4 max-w-5xl px-4 sm:mt-5 sm:px-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
             {/* ── ONGLET À PROPOS ── */}
@@ -400,7 +527,7 @@ export default function Profile() {
                 </div>
 
                 <div className="lg:col-span-2">
-                  <div className="bg-white rounded-2xl shadow-sm p-10 border border-gray-100 text-center text-gray-400 flex flex-col items-center gap-3">
+                  <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-100 bg-white p-6 text-center text-gray-400 shadow-sm sm:p-10">
                     <BadgeInfo className="h-10 w-10 text-gray-200" />
                     <p className="text-sm">Aucune info supplémentaire pour l'instant</p>
                   </div>
@@ -439,7 +566,7 @@ export default function Profile() {
                 {/* Posts */}
                 <div className="lg:col-span-2 space-y-4">
                   {userPosts.length === 0 ? (
-                    <div className="bg-white rounded-2xl shadow-sm p-12 border border-gray-100 text-center flex flex-col items-center gap-3">
+                    <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm sm:p-12">
                       <Rss className="h-10 w-10 text-gray-200" />
                       <p className="text-gray-400 font-medium text-sm">Aucune publication pour l'instant</p>
                       {isOwnProfile && (
@@ -450,11 +577,61 @@ export default function Profile() {
                     </div>
                   ) : (
                     userPosts.map(post => (
-                      <MiniPostCard key={post.id} post={post} />
+                      <PostCard key={post.id} post={post} />
                     ))
                   )}
                 </div>
               </>
+            )}
+
+            {tab === 'reposts' && (
+              <>
+                <div className="lg:col-span-1 space-y-4">
+                  <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
+                    <h3 className="font-bold text-gray-700 mb-3 text-xs uppercase tracking-widest">Republications</h3>
+                    <p className="text-sm text-gray-500 leading-relaxed">
+                      Retrouvez ici les publications republiées par ce compte.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-2 space-y-4">
+                  {userReposts.length === 0 ? (
+                    <div className="flex flex-col items-center gap-3 rounded-2xl border border-gray-100 bg-white p-8 text-center shadow-sm sm:p-12">
+                      <Rss className="h-10 w-10 text-gray-200" />
+                      <p className="text-gray-400 font-medium text-sm">Aucune republication pour l'instant</p>
+                    </div>
+                  ) : (
+                    userReposts.map((post) => (
+                      <PostCard key={post.id} post={post} />
+                    ))
+                  )}
+                </div>
+              </>
+            )}
+
+            {tab === 'friends' && (
+              <div className="lg:col-span-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {profileFriends.map((item) => (
+                    <FriendCard
+                      key={item.id}
+                      user={item.friend}
+                      currentProfileId={profileData.id}
+                      onStartConversation={async (friendId) => {
+                        const res = await api.post('/messaging/start/', { user_id: friendId })
+                        navigate('/messages', { state: { conv: res.data } })
+                      }}
+                    />
+                  ))}
+                  {profileFriends.length === 0 && (
+                    <div className="col-span-full rounded-2xl border border-dashed border-gray-200 bg-white p-8 text-center sm:p-12">
+                      <Users className="mx-auto mb-3 h-10 w-10 text-gray-200" />
+                      <p className="text-sm font-semibold text-gray-400">Aucun ami visible pour le moment</p>
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
 
           </div>
@@ -478,10 +655,44 @@ export default function Profile() {
 
 
 // ══ Mini Post Card ══
+function FriendCard({ user, currentProfileId, onStartConversation }) {
+  if (!user) return null
+  const name = user.full_name || user.username
+  const avatar = resolveMediaUrl(user.avatar)
+
+  return (
+    <div className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+      <Link to={`/profile/${user.id}`} className="shrink-0">
+        {avatar ? (
+          <img src={avatar} alt={name} className="h-12 w-12 rounded-full object-cover" />
+        ) : (
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-lg font-black text-emerald-700">
+            {name?.charAt(0)?.toUpperCase()}
+          </div>
+        )}
+      </Link>
+      <div className="min-w-0 flex-1">
+        <Link to={`/profile/${user.id}`} className="block truncate text-sm font-bold text-gray-900 hover:text-emerald-600">
+          {name}
+        </Link>
+        <p className="truncate text-xs text-gray-400">@{user.username}</p>
+      </div>
+      {String(user.id) !== String(currentProfileId) && (
+        <button
+          type="button"
+          onClick={() => onStartConversation(user.id)}
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 transition hover:bg-emerald-100"
+          aria-label="Message"
+        >
+          <Mail className="h-4 w-4" />
+        </button>
+      )}
+    </div>
+  )
+}
+
 function MiniPostCard({ post }) {
-  const mediaUrl = post.media
-    ? (post.media.startsWith('http') ? post.media : `http://localhost:8000${post.media}`)
-    : null
+  const mediaUrl = resolveMediaUrl(post.media)
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-shadow duration-200">

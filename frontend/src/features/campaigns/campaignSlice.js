@@ -2,6 +2,11 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import api from '../../services/api'
 
+const asList = (payload) => {
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload?.results)) return payload.results
+  return []
+}
 
 // ── Thunks ───────────────────────────────────────────────────
 
@@ -105,7 +110,7 @@ const campaignSlice = createSlice({
     builder
       // ── fetchAll ──
       .addCase(fetchCampaigns.pending,   (s) => { s.loading = true; s.error = null })
-      .addCase(fetchCampaigns.fulfilled, (s, a) => { s.loading = false; s.list = a.payload })
+      .addCase(fetchCampaigns.fulfilled, (s, a) => { s.loading = false; s.list = asList(a.payload) })
       .addCase(fetchCampaigns.rejected,  (s, a) => { s.loading = false; s.error = a.payload })
 
       // ── fetchOne ──
@@ -115,7 +120,7 @@ const campaignSlice = createSlice({
 
       // ── fetchMine ──
       .addCase(fetchMyCampaigns.pending,   (s) => { s.loading = true })
-      .addCase(fetchMyCampaigns.fulfilled, (s, a) => { s.loading = false; s.mine = a.payload })
+      .addCase(fetchMyCampaigns.fulfilled, (s, a) => { s.loading = false; s.mine = asList(a.payload) })
       .addCase(fetchMyCampaigns.rejected,  (s, a) => { s.loading = false; s.error = a.payload })
 
       // ── create ──

@@ -77,23 +77,18 @@ const notificationsSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       })
-      .addCase(fetchUnreadCount.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
       .addCase(fetchUnreadCount.fulfilled, (state, action) => {
-        state.loading = false;
         state.unreadCount = action.payload;
       })
       .addCase(fetchUnreadCount.rejected, (state, action) => {
-        state.loading = false;
         state.error = action.payload;
       })
       .addCase(markAsRead.fulfilled, (state, action) => {
         const index = state.items.findIndex(n => n.id === action.payload.id);
         if (index !== -1) {
+          const wasUnread = !state.items[index].is_read;
           state.items[index].is_read = true;
-          if (!state.items[index].is_read) {
+          if (wasUnread) {
             state.unreadCount = Math.max(0, state.unreadCount - 1);
           }
         }

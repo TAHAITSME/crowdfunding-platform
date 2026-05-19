@@ -10,7 +10,7 @@ export const loginUser = createAsyncThunk('auth/login', async (credentials, thun
     const me = await api.get('/auth/me/')
     return { tokens: res.data, user: me.data }
   } catch (err) {
-    return thunkAPI.rejectWithValue(err.response.data)
+    return thunkAPI.rejectWithValue(err.response?.data || 'Connexion impossible')
   }
 })
 
@@ -19,7 +19,7 @@ export const fetchMe = createAsyncThunk('auth/me', async (_, thunkAPI) => {
     const res = await api.get('/auth/me/')
     return res.data
   } catch (err) {
-    return thunkAPI.rejectWithValue(err.response.data)
+    return thunkAPI.rejectWithValue(err.response?.data || 'Impossible de charger le profil')
   }
 })
 
@@ -32,12 +32,32 @@ export const registerUser = createAsyncThunk('auth/register', async (userData, t
   }
 })
 
+export const refreshToken = createAsyncThunk('auth/refresh', async (_, thunkAPI) => {
+  try {
+    const refresh = localStorage.getItem('refresh_token')
+    if (!refresh) throw new Error('No refresh token')
+    const res = await api.post('/auth/refresh/', { refresh })
+    localStorage.setItem('access_token', res.data.access)
+    if (res.data.refresh) {
+      localStorage.setItem('refresh_token', res.data.refresh)
+    }
+    return res.data
+  } catch (err) {
+    return thunkAPI.rejectWithValue(err.response?.data || 'Refresh failed')
+  }
+})
+
 
 const authSlice = createSlice({
   name: 'auth',
   initialState: {
     user:    null,
-    tokens:  null,
+    tokens:  localStorage.getItem('access_token')
+      ? {
+          access: localStorage.getItem('access_token'),
+          refresh: localStorage.getItem('refresh_token'),
+        }
+      : null,
     loading: false,
     error:   null,
   },
@@ -47,6 +67,9 @@ const authSlice = createSlice({
       state.tokens = null
       localStorage.removeItem('access_token')
       localStorage.removeItem('refresh_token')
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('ydiFyedk-auth-change'))
+      }
     },
   },
   extraReducers: (builder) => {
@@ -60,10 +83,40 @@ const authSlice = createSlice({
       .addCase(loginUser.rejected,  (s, a) => { s.loading = false; s.error = a.payload })
       .addCase(fetchMe.pending,     (s) => { s.loading = true; s.error = null })
       .addCase(fetchMe.fulfilled,   (s, a) => { s.loading = false; s.user = a.payload })
-      .addCase(fetchMe.rejected,    (s, a) => { s.loading = false; s.error = a.payload })
+      .addCase(fetchMe.rejected,    (s, a) => {
+        s.loading = false
+        s.user = null
+        s.tokens = null
+        s.error = a.payload
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('ydiFyedk-auth-change'))
+        }
+      })
       .addCase(registerUser.pending,   (s) => { s.loading = true })
       .addCase(registerUser.fulfilled, (s) => { s.loading = false })
       .addCase(registerUser.rejected,  (s, a) => { s.loading = false; s.error = a.payload })
+      .addCase(refreshToken.pending,   (s) => { s.loading = true })
+      .addCase(refreshToken.fulfilled, (s, a) => {
+        s.loading = false
+        s.tokens = {
+          ...s.tokens,
+          access: a.payload.access,
+          refresh: a.payload.refresh || s.tokens?.refresh,
+        }
+      })
+      .addCase(refreshToken.rejected,  (s, a) => {
+        s.loading = false
+        s.user = null
+        s.tokens = null
+        s.error = a.payload
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new Event('ydiFyedk-auth-change'))
+        }
+      })
   },
 })
 

@@ -1,107 +1,90 @@
-import { ArrowLeft, HelpCircle, Mail, FileText, ExternalLink } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { ExternalLink, FileText, HelpCircle, Mail, MessageSquareWarning } from 'lucide-react'
 
-export default function Help() {
-  const navigate = useNavigate()
+import SettingsSectionShell from './SettingsSectionShell'
 
-  const faqs = [
-    {
-      question: 'Comment créer une campagne de financement participatif ?',
-      answer: 'Pour créer une campagne, rendez-vous dans votre profil et cliquez sur "Créer une campagne". Remplissez les informations requises et définissez votre objectif de financement.'
-    },
-    {
-      question: 'Comment signaler un contenu inapproprié ?',
-      answer: 'Cliquez sur les trois points (...) à côté du contenu et sélectionnez "Signaler". Décrivez la raison du signalement pour nous aider à améliorer la plateforme.'
-    },
-    {
-      question: 'Comment fonctionnent les donations ?',
-      answer: 'Vous pouvez faire un don à une campagne directement depuis sa page. Les fonds sont collectés de manière sécurisée et remis au créateur une fois la campagne terminée.'
-    },
-    {
-      question: 'Comment changer mon mot de passe ?',
-      answer: 'Allez dans les paramètres de compte et cliquez sur "Changer le mot de passe". Entrez votre mot de passe actuel et votre nouveau mot de passe.'
-    },
-  ]
+const FAQS = [
+  {
+    question: 'Comment creer une campagne ?',
+    answer: 'Rendez-vous dans votre profil ou dans la section campagnes puis completez les informations demandees.',
+  },
+  {
+    question: 'Comment signaler un contenu ?',
+    answer: 'Utilisez les actions du contenu concerne pour envoyer un signalement detaille a l’equipe.',
+  },
+  {
+    question: 'Comment fonctionnent les donations ?',
+    answer: 'Les contributions se font depuis la page campagne et sont suivies directement sur la plateforme.',
+  },
+]
 
+export default function Help({ showHeading = true }) {
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="max-w-2xl mx-auto px-4">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 hover:bg-gray-200 rounded-lg transition"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="text-2xl font-bold text-gray-900">Aide et support</h1>
-        </div>
-
-        {/* Contact Section */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <Mail className="h-5 w-5 text-emerald-600" />
-            Nous contacter
-          </h2>
-          <div className="space-y-3">
-            <div>
-              <p className="text-sm text-gray-600">Email de support</p>
-              <a href="mailto:support@crowdfunding.local" className="text-emerald-600 hover:underline">
+    <SettingsSectionShell
+      title="Support"
+      description="Retrouvez l’aide, les liens utiles et les moyens de contacter le support."
+      showHeading={showHeading}
+    >
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(320px,0.9fr)]">
+        <div className="space-y-4">
+          <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h3 className="flex items-center gap-2 text-sm font-black text-slate-900 dark:text-slate-100">
+              <Mail className="h-4.5 w-4.5 text-emerald-600" />
+              Contact support
+            </h3>
+            <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+              <p>Pour toute question sur votre compte ou un incident de paiement :</p>
+              <a href="mailto:support@crowdfunding.local" className="inline-flex items-center gap-2 font-semibold text-emerald-600 hover:underline">
                 support@crowdfunding.local
+                <ExternalLink className="h-4 w-4" />
               </a>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Centré d'aide</p>
-              <a href="#" className="text-emerald-600 hover:underline flex items-center gap-1">
-                Visiter le centre d'aide <ExternalLink className="h-4 w-4" />
-              </a>
+          </div>
+
+          <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <h3 className="flex items-center gap-2 text-sm font-black text-slate-900 dark:text-slate-100">
+              <HelpCircle className="h-4.5 w-4.5 text-emerald-600" />
+              Questions frequentes
+            </h3>
+            <div className="mt-4 space-y-3">
+              {FAQS.map((faq) => (
+                <details key={faq.question} className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-950">
+                  <summary className="cursor-pointer list-none text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    {faq.question}
+                  </summary>
+                  <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400">{faq.answer}</p>
+                </details>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* FAQ Section */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <HelpCircle className="h-5 w-5 text-emerald-600" />
-            Questions fréquemment posées
-          </h2>
-          <div className="space-y-4">
-            {faqs.map((faq, idx) => (
-              <details key={idx} className="border border-gray-200 rounded-lg">
-                <summary className="p-4 font-medium text-gray-900 cursor-pointer hover:bg-gray-50">
-                  {faq.question}
-                </summary>
-                <div className="px-4 pb-4 text-gray-600 bg-gray-50">
-                  {faq.answer}
-                </div>
-              </details>
-            ))}
-          </div>
+        <div className="space-y-4">
+          <ResourceCard
+            icon={FileText}
+            title="Guide utilisateur"
+            description="Accedez aux bonnes pratiques et aux parcours principaux de la plateforme."
+          />
+          <ResourceCard
+            icon={MessageSquareWarning}
+            title="Signaler un probleme"
+            description="Recueillez les details de l’incident et contactez le support avec captures et etapes."
+          />
         </div>
+      </div>
+    </SettingsSectionShell>
+  )
+}
 
-        {/* Resources Section */}
-        <div className="bg-white rounded-lg shadow p-6 mt-6">
-          <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <FileText className="h-5 w-5 text-emerald-600" />
-            Ressources
-          </h2>
-          <ul className="space-y-2">
-            <li>
-              <a href="#" className="text-emerald-600 hover:underline flex items-center gap-2">
-                <ExternalLink className="h-4 w-4" /> Guide de l'utilisateur
-              </a>
-            </li>
-            <li>
-              <a href="#" className="text-emerald-600 hover:underline flex items-center gap-2">
-                <ExternalLink className="h-4 w-4" /> Conditions d'utilisation
-              </a>
-            </li>
-            <li>
-              <a href="#" className="text-emerald-600 hover:underline flex items-center gap-2">
-                <ExternalLink className="h-4 w-4" /> Politique de confidentialité
-              </a>
-            </li>
-          </ul>
+function ResourceCard({ icon: Icon, title, description }) {
+  return (
+    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div className="flex items-start gap-3">
+        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+          <Icon className="h-5 w-5" />
+        </div>
+        <div>
+          <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">{title}</h3>
+          <p className="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">{description}</p>
         </div>
       </div>
     </div>

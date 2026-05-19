@@ -1,85 +1,71 @@
-import { ArrowLeft, Shield, Lock, Eye, Users } from 'lucide-react'
+import { Download, Lock, Shield, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 
-export default function PrivacyCenter() {
+import SettingsSectionShell from './SettingsSectionShell'
+
+const OPTIONS = [
+  {
+    icon: Shield,
+    title: 'Confidentialite du profil',
+    description: 'Controlez la visibilite de votre profil et de vos informations.',
+    path: '/settings/privacy',
+  },
+  {
+    icon: Lock,
+    title: 'Securite du compte',
+    description: 'Mettez a jour votre mot de passe et renforcez la securite du compte.',
+    path: '/settings/password',
+  },
+  {
+    icon: Users,
+    title: 'Interactions sociales',
+    description: 'Gerez les suivis, demandes et messages entrants.',
+    path: '/settings/privacy',
+  },
+  {
+    icon: Download,
+    title: 'Donnees personnelles',
+    description: 'Accedez a vos options de telechargement et de suppression de donnees.',
+    path: '/settings/account-status',
+  },
+]
+
+export default function PrivacyCenter({ showHeading = true }) {
   const navigate = useNavigate()
 
-  const privacyOptions = [
-    {
-      icon: Eye,
-      title: 'Visibilité du profil',
-      description: 'Contrôlez qui peut voir votre profil et vos informations personnelles',
-      link: '/settings/privacy'
-    },
-    {
-      icon: Lock,
-      title: 'Sécurité du compte',
-      description: 'Gérez votre mot de passe et vos sessions actives',
-      link: '/settings/change-password'
-    },
-    {
-      icon: Users,
-      title: 'Interactions sociales',
-      description: 'Contrôlez qui peut vous suivre et vous envoyer des messages',
-      link: '/settings/privacy'
-    },
-    {
-      icon: Shield,
-      title: 'Données personnelles',
-      description: 'Téléchargez ou supprimez vos données',
-      link: '/settings/account-status'
-    }
-  ]
-
   return (
-    <div className="min-h-screen bg-gray-100 py-8">
-      <div className="max-w-3xl mx-auto px-4">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-6">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 hover:bg-gray-200 rounded-lg transition"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Centre de confidentialité</h1>
-            <p className="text-sm text-gray-600 mt-1">Gérez vos paramètres de confidentialité et de sécurité</p>
-          </div>
-        </div>
-
-        {/* Privacy Options Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {privacyOptions.map((option, idx) => {
-            const Icon = option.icon
-            return (
-              <button
-                key={idx}
-                onClick={() => navigate(option.link)}
-                className="bg-white rounded-lg shadow p-6 text-left hover:shadow-lg transition"
-              >
-                <div className="flex items-start gap-4">
-                  <div className="p-3 bg-emerald-100 rounded-lg">
-                    <Icon className="h-6 w-6 text-emerald-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-gray-900">{option.title}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{option.description}</p>
-                  </div>
+    <SettingsSectionShell
+      title="Centre de confidentialite"
+      description="Regroupez ici les controles de donnees personnelles, de securite et de gestion du compte."
+      showHeading={showHeading}
+    >
+      <div className="grid gap-4 lg:grid-cols-2">
+        {OPTIONS.map((option) => {
+          const Icon = option.icon
+          return (
+            <button
+              key={option.title}
+              type="button"
+              onClick={() => navigate(option.path)}
+              className="rounded-[28px] border border-slate-200 bg-white p-5 text-left shadow-sm transition hover:border-emerald-200 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:hover:bg-slate-800"
+            >
+              <div className="flex items-start gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300">
+                  <Icon className="h-5 w-5" />
                 </div>
-              </button>
-            )
-          })}
-        </div>
-
-        {/* Info Section */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mt-8">
-          <h3 className="font-bold text-blue-900 mb-2">💡 Conseil de sécurité</h3>
-          <p className="text-sm text-blue-800">
-            Nous prenons votre vie privée au sérieux. Vérifiez régulièrement ces paramètres pour vous assurer que votre compte est sécurisé et que vous contrôlez qui peut accéder à vos informations personnelles.
-          </p>
-        </div>
+                <div className="min-w-0">
+                  <h3 className="text-sm font-black text-slate-900 dark:text-slate-100">{option.title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-slate-500 dark:text-slate-400">{option.description}</p>
+                </div>
+              </div>
+            </button>
+          )
+        })}
       </div>
-    </div>
+
+      <div className="rounded-[28px] border border-sky-200 bg-sky-50 p-5 text-sm leading-6 text-sky-900 shadow-sm">
+        Les options de confidentialite sont centralisees ici pour les tests mobiles. Si de nouvelles actions backend sont ajoutees plus tard, cette page pourra les exposer sans changer la navigation.
+      </div>
+    </SettingsSectionShell>
   )
 }

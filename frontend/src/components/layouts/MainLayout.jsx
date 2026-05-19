@@ -1,26 +1,42 @@
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
+import MessagesPopup from '../messaging/MessagesPopup'
+import { useLocation } from 'react-router-dom'
 
-export default function MainLayout({ children, rightSidebar, fullWidth }) {
+export default function MainLayout({ children, rightSidebar, fullWidth, contentClassName = '' }) {
+  const location = useLocation()
+  const isMessagesPage = location.pathname.startsWith('/messages')
+  const contentClasses = contentClassName || (
+    fullWidth
+      ? 'min-h-[calc(100vh-4rem)] w-full px-3 py-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:px-4 sm:pb-[calc(7rem+env(safe-area-inset-bottom))] lg:px-6 lg:py-8 lg:pb-8 xl:px-8'
+      : 'min-h-[calc(100vh-4rem)] w-full px-3 py-5 pb-[calc(6.5rem+env(safe-area-inset-bottom))] sm:px-4 sm:pb-[calc(7rem+env(safe-area-inset-bottom))] lg:px-6 lg:py-8 lg:pb-8 xl:px-8'
+  )
+
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="min-h-screen overflow-x-hidden bg-white text-slate-900 dark:bg-black dark:text-slate-100">
       <Navbar />
-      <div className="flex flex-1 pt-16 overflow-hidden">
+
+      <div className="min-h-screen w-full overflow-x-hidden pt-16">
         <Sidebar />
 
-        {/* ✅ ml-16 = sidebar compacte (64px), jamais de ml-64 fixe */}
-        <main className={`flex-1 ml-16 overflow-y-auto transition-all duration-300 ${rightSidebar ? 'xl:mr-80' : ''}`}>
-          <div className={fullWidth ? 'w-full' : 'max-w-2xl mx-auto px-4 py-6'}>
-            {children}
-          </div>
-        </main>
+        <div className="min-w-0 overflow-x-hidden lg:pl-[17rem] xl:pl-[18rem]">
+          <div className="flex min-w-0 overflow-x-hidden">
+            <main className="min-w-0 flex-1 overflow-x-hidden">
+              <div className={contentClasses}>
+                {children}
+              </div>
+            </main>
 
-        {rightSidebar && (
-          <aside className="hidden xl:block fixed right-0 top-16 w-80 h-[calc(100vh-64px)] p-4 overflow-y-auto bg-gray-100">
-            {rightSidebar}
-          </aside>
-        )}
+            {rightSidebar && (
+              <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] w-[320px] shrink-0 overflow-y-auto px-6 py-8 xl:block">
+                {rightSidebar}
+              </aside>
+            )}
+          </div>
+        </div>
       </div>
+
+      {!isMessagesPage && <MessagesPopup />}
     </div>
   )
 }

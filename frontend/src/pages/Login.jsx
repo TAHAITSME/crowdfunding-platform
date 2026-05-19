@@ -1,17 +1,38 @@
-import { useForm } from "react-hook-form"
-import { useDispatch, useSelector } from "react-redux"
-import { loginUser } from "../features/auth/authSlice"
-import { useNavigate, Link } from "react-router-dom"
-import { useEffect } from "react"
-import toast from "react-hot-toast"
-import logo from "../assets/image.png"
+import { useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { useDispatch, useSelector } from 'react-redux'
+import toast from 'react-hot-toast'
+import { BarChart3, HeartHandshake, LockKeyhole, Mail, ShieldCheck, Sparkles } from 'lucide-react'
 
-const inputClass = `
-  w-full border border-gray-200 rounded-xl px-4 py-3
-  focus:outline-none focus:ring-2 focus:ring-green-500
-  bg-white/80 placeholder-gray-400 text-gray-700
-  transition
-`
+import {
+  AuthCard,
+  AuthInput,
+  AuthLayout,
+  AuthVisualPanel,
+  PasswordInput,
+} from '../components/auth/AuthComponents'
+import { loginUser } from '../features/auth/authSlice'
+import logo from '../assets/image.png'
+import signInImage from '../assets/imagesignein.png'
+
+const benefits = [
+  {
+    icon: ShieldCheck,
+    title: 'Associations vérifiées',
+    text: 'Les demandes sont relues avant d’ouvrir une campagne.',
+  },
+  {
+    icon: HeartHandshake,
+    title: 'Dons transparents',
+    text: 'Chaque contribution garde un suivi clair et lisible.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Impact mesurable',
+    text: 'Les actions solidaires deviennent visibles dans le temps.',
+  },
+]
 
 export default function Login() {
   const dispatch = useDispatch()
@@ -21,56 +42,63 @@ export default function Login() {
 
   useEffect(() => {
     if (tokens?.access) {
-      toast.success("Connecté avec succès !")
-      navigate("/")
+      toast.success('Connecté avec succès !')
+      navigate('/')
     }
   }, [tokens?.access, navigate])
 
   useEffect(() => {
-    if (error) toast.error("Email ou mot de passe incorrect.")
+    if (error) toast.error('Email ou mot de passe incorrect.')
   }, [error])
 
   const onSubmit = (data) => dispatch(loginUser(data))
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-100 flex flex-col items-center justify-center px-4">
-
-      {/* Logo */}
-      <Link to="/" className="flex flex-col items-center gap-1 mb-8">
-        <img src={logo} alt="YedFyed" className="h-20 w-20 object-contain" />
-        <span className="text-2xl font-extrabold text-green-800 tracking-tight">YedFyed</span>
-        <span className="text-xs text-green-500 font-medium tracking-widest uppercase">Community Crowdfunding</span>
-      </Link>
-
-      {/* Card */}
-      <div className="w-full max-w-md bg-white/80 backdrop-blur-md rounded-3xl shadow-2xl border border-green-100 p-8">
-
-        <h2 className="text-2xl font-bold text-green-900 text-center mb-1">Bon retour 👋</h2>
-        <p className="text-center text-gray-400 text-sm mb-6">Connectez-vous à votre compte</p>
+    <AuthLayout
+      visual={
+        <AuthVisualPanel
+          logo={logo}
+          image={signInImage}
+          imagePosition="center"
+          title="La solidarité devient digitale."
+          subtitle="Soutenez des campagnes fiables, suivez l’impact réel des dons et connectez-vous à une communauté qui agit."
+          benefits={benefits}
+        />
+      }
+    >
+      <AuthCard>
+        <div className="mb-6">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-[#DDEBE4] bg-[#EAF8F1] px-3 py-1 text-xs font-black uppercase text-[#006B3F]">
+            <Sparkles className="h-3.5 w-3.5" />
+            Espace sécurisé
+          </div>
+          <h2 className="text-3xl font-black tracking-tight text-[#102A43]">Bon retour 👋</h2>
+          <p className="mt-2 text-sm font-semibold leading-6 text-[#64748B]">
+            Connectez-vous pour retrouver vos campagnes, vos dons et vos échanges solidaires.
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <AuthInput
+            {...register('email', { required: true })}
+            type="text"
+            inputMode="email"
+            autoComplete="username"
+            label="Email ou nom d’utilisateur"
+            placeholder="exemple@email.com ou username"
+            icon={Mail}
+          />
 
-          <div>
-            <input
-              {...register("email", { required: true })}
-              type="email"
-              placeholder="Email"
-              className={inputClass}
-            />
-          </div>
+          <PasswordInput
+            {...register('password', { required: true })}
+            label="Mot de passe"
+            placeholder="Votre mot de passe"
+            autoComplete="current-password"
+            icon={LockKeyhole}
+          />
 
-          <div>
-            <input
-              {...register("password", { required: true })}
-              type="password"
-              placeholder="Mot de passe"
-              className={inputClass}
-            />
-          </div>
-
-          {/* Mot de passe oublié */}
-          <div className="text-right">
-            <Link to="/forgot-password" className="text-xs text-green-600 hover:underline">
+          <div className="flex items-center justify-end">
+            <Link to="/forgot-password" className="text-sm font-black text-[#006B3F] transition hover:text-[#00A859]">
               Mot de passe oublié ?
             </Link>
           </div>
@@ -78,32 +106,29 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-gradient-to-r from-green-500 to-green-700 text-white py-3 rounded-xl font-bold text-base hover:from-green-600 hover:to-green-800 transition shadow-lg shadow-green-200"
+            className="inline-flex h-12 w-full items-center justify-center rounded-2xl bg-[#00A859] px-5 text-sm font-black text-white shadow-[0_18px_40px_rgba(0,168,89,0.24)] transition duration-200 hover:-translate-y-0.5 hover:bg-[#006B3F] hover:shadow-[0_22px_50px_rgba(0,107,63,0.25)] disabled:translate-y-0 disabled:opacity-60"
           >
-            {loading ? "⏳ Connexion..." : "🔐 Se connecter"}
+            {loading ? 'Connexion...' : 'Se connecter'}
           </button>
-
         </form>
 
-        {/* Divider */}
-        <div className="flex items-center gap-3 my-5">
-          <div className="flex-1 h-px bg-gray-200" />
-          <span className="text-xs text-gray-400">ou</span>
-          <div className="flex-1 h-px bg-gray-200" />
+        <div className="my-6 flex items-center gap-3">
+          <div className="h-px flex-1 bg-[#DDEBE4]" />
+          <span className="text-xs font-black uppercase text-[#94A3B8]">OU</span>
+          <div className="h-px flex-1 bg-[#DDEBE4]" />
         </div>
 
-        <p className="text-center text-sm text-gray-400">
-          Pas encore de compte ?{" "}
-          <Link to="/register" className="text-green-600 font-semibold hover:underline">
-            S'inscrire
-          </Link>
+        <Link
+          to="/register"
+          className="inline-flex h-12 w-full items-center justify-center rounded-2xl border border-[#DDEBE4] bg-white px-5 text-sm font-black text-[#102A43] transition duration-200 hover:-translate-y-0.5 hover:border-[#00A859] hover:text-[#006B3F] hover:shadow-md"
+        >
+          Créer un compte
+        </Link>
+
+        <p className="mt-5 rounded-2xl bg-[#F8FAF9] px-4 py-3 text-center text-xs font-bold leading-5 text-[#64748B]">
+          Votre contribution aide des projets solidaires réels.
         </p>
-
-      </div>
-
-      {/* Footer */}
-      <p className="text-xs text-gray-300 mt-6">© 2026 YedFyed — Community Crowdfunding</p>
-
-    </div>
+      </AuthCard>
+    </AuthLayout>
   )
 }

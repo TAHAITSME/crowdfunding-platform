@@ -5,7 +5,13 @@ export default function Avatar({ src, name = '?', size = 'md', online }) {
     lg: 'w-14 h-14 text-lg',
     xl: 'w-20 h-20 text-2xl'
   }
-  const initials = name.slice(0, 2).toUpperCase()
+  const initials = name
+    .split(' ')
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase() || '?'
 
   return (
     <div className="relative inline-block">
